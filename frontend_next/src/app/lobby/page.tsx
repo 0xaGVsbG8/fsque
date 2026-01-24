@@ -30,13 +30,24 @@ type RoomEntry = {
 //   { name: "Epsilon Suite", protected: false, visible: true },
 // ];
 
+const redirect_to_room = (room_id: string, copy_url: boolean = false) => {
+  const url = `/room/${room_id}`
+
+  if(copy_url){
+    try{
+      navigator.clipboard.writeText(window.location.protocol + '//' + window.location.host + url);
+    }catch(err){
+      console.log('clipboard unavaiable')
+    }
+  }
+
+
+  window.open(url, '_self')
+}
+export {redirect_to_room}
 
 export default function LobbyPage() {
 
-
-  const redirect_to_room = (room_id: string) => {
-    window.open(`/room/${room_id}`, '_self')
-  }
 
 
   const [query, setQuery] = useState("");

@@ -4,6 +4,8 @@ import { useState } from "react";
 import styles from "./CreateRoomPanel.module.css";
 import { base_fetch } from "@/app/app_conf";
 import get_username from "@/app/modules/get_username";
+import { redirect } from "next/dist/server/api-utils";
+import { redirect_to_room } from "../page";
 
 export type CreateRoomPayload = {
   name: string;
@@ -56,10 +58,13 @@ export default function CreateRoomPanel({ onCreated, onClose }: CreateRoomPanelP
           owner: get_username()
         }),
       });
+      
 
       if (!response.ok) {
         return;
       }
+
+      const data = await response.json()
 
       onCreated(formData);
       setFormData({
@@ -70,6 +75,11 @@ export default function CreateRoomPanel({ onCreated, onClose }: CreateRoomPanelP
         redirectImmediately: true,
       });
       onClose();
+
+      if(formData.redirectImmediately){
+        redirect_to_room(data.room_token, true)
+      }
+
     } catch (error) {
       console.error("Failed to create room", error);
     }

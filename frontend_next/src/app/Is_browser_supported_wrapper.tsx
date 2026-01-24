@@ -43,6 +43,9 @@ export default function Is_browser_supported_wrapper({
           <UnsupportedBrowserNotice />
         </div>
       )}
+
+
+      {/* {children} */}
     </>
   );
   

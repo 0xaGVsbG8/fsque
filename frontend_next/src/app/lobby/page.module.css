@@ -4,6 +4,24 @@
   min-height: 100vh;
   padding: 40px 24px;
   background: #242424;
+  position: relative;
+}
+
+.mainContent {
+  position: relative;
+  z-index: 1;
+}
+
+.pageDimmed {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 5;
 }
 
 .container {
@@ -28,6 +46,7 @@
   gap: 12px;
   margin-bottom: 16px;
 }
+
 
 .searchInput {
   flex: 1;

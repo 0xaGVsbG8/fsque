@@ -1,6 +1,6 @@
 'use client'
 import {useEffect, useState} from 'react'
-import UnsupportedBrowserNotice from './global_comps/unsuported_browser'
+import UnsupportedBrowserNotice from '../../global_comps/unsuported_browser'
 import styles from "./Is_browser_supported_wrapper.module.css";
 
 

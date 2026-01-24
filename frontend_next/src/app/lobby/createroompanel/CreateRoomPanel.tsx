@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import styles from "./CreateRoomPanel.module.css";
+import { base_fetch } from "@/app/app_conf";
+import get_username from "@/app/modules/get_username";
 
 export type CreateRoomPayload = {
   name: string;
@@ -12,11 +14,11 @@ export type CreateRoomPayload = {
 };
 
 type CreateRoomPanelProps = {
-  onCreate: (payload: CreateRoomPayload) => void;
+  onCreated: (payload: CreateRoomPayload) => void;
   onClose: () => void;
 };
 
-export default function CreateRoomPanel({ onCreate, onClose }: CreateRoomPanelProps) {
+export default function CreateRoomPanel({ onCreated, onClose }: CreateRoomPanelProps) {
   const [formData, setFormData] = useState<CreateRoomPayload>({
     name: "",
     protected: false,
@@ -29,16 +31,48 @@ export default function CreateRoomPanel({ onCreate, onClose }: CreateRoomPanelPr
     !formData.name.trim() ||    
     (formData.protected && !formData.password.trim());
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    onCreate(formData);
-    setFormData({
-      name: "",
-      protected: false,
-      password: "",
-      visible: true,
-      redirectImmediately: true,
-    });
+    const name = formData.name.trim();
+    const password = formData.password.trim();
+
+    if (!name) {
+      return;
+    }
+
+    if (formData.protected && !password) {
+      return;
+    }
+
+    try {
+      const response = await fetch(base_fetch+"/make_room", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          passwd: formData.protected ? password : "",
+          privacy: formData.protected ? "private" : "public",
+          visible: formData.visible,
+          owner: get_username()
+        }),
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      onCreated(formData);
+      setFormData({
+        name: "",
+        protected: false,
+        password: "",
+        visible: true,
+        redirectImmediately: true,
+      });
+      onClose();
+    } catch (error) {
+      console.error("Failed to create room", error);
+    }
   };
 
   return (

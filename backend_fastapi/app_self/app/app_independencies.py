@@ -37,7 +37,8 @@ STORE_STUFF = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__fil
 PRODS_CATALOG = os.path.join(STORE_STUFF,'products_catalog.csv')
 GLOBAL_SUPERSTORE_CSV = os.path.join(STORE_STUFF,'Global_Superstore2.csv')
 PRODS_PER_REQUEST = 20
-STASHED_CART_RECS = os.path.join(os.path.dirname(__file__),'stashed_cart_recs.csv')
+# STASHED_CART_RECS = os.path.join(os.path.dirname(__file__),'stashed_cart_recs.csv')
+sqlite_db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)),'db.sqlite')
 
 
 # __STORAGE_VAULT_PATH_MAIN = (os.path.join(os.path.dirname(os.path.dirname(__file__)),'__STORAGE_VAULT')).replace('\\','/')

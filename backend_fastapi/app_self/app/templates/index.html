@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Endpoints test</title>
+</head>
+<body>
+
+    <script>
+
+        const update_cart_recommendations = () => {
+
+
+            fetch('/backend/update_cart_recommendations/',{
+                method:'POST',
+                credentials:'include',
+                headers:{
+                    "Content-Type": "application/json",
+                    "protocol":"init"
+                },
+
+                body:JSON.stringify({
+                    'cart': ['TEC-AC-10003033', 'TEC-PH-10001363']
+                })
+            })
+            .then(response => {
+                return response.json();
+            })
+            .then(data => {
+                let result=data
+            })
+
+
+        }
+
+        // update_cart_recommendations()
+
+
+        const read_cart_recommendations = () => {
+
+            
+            console.log('elo')
+
+            fetch('/backend/get_cart_based_recomendation/',{
+                method:'GET',
+                credentials:'include',
+                headers:{
+                    "Content-Type": "application/json",
+                    "protocol":"init"
+                },
+
+               
+            })
+            .then(response => {
+                return response.json(); // albo .text(), .blob(), .formData() jak chcesz
+            })
+            .then(data => {
+                let result=data
+                console.log(result)
+            })
+
+
+        }
+
+        read_cart_recommendations()
+
+
+
+    </script>
+    
+</body>
+</html>

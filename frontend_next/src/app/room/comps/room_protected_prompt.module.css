@@ -52,3 +52,8 @@
   font-weight: 600;
   cursor: pointer;
 }
+
+.button:disabled {
+  background: #4b5563;
+  cursor: not-allowed;
+}

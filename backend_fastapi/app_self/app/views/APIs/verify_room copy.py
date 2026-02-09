@@ -49,13 +49,12 @@ async def view(request: Request, received_room_id:str = Query(...), bg_tasks: Ba
         
         if not STASHED_ROOMS.get(received_room_id):
             STASHED_ROOMS[received_room_id] = [USER_ID]
-            # STASHED_ROOMS[received_room_id] = [USER_ACCESS_TOKEN]
         else:
-            STASHED_ROOMS[received_room_id].append(USER_ACCESS_TOKEN)
+            STASHED_ROOMS[received_room_id].append(USER_ID)
             STASHED_ROOMS[received_room_id] = list(set(STASHED_ROOMS[received_room_id]))
         
-        # print('added token', USER_ACCESS_TOKEN)
-        # ACCESS_TOKENS.add(USER_ACCESS_TOKEN)
+        print('added token', USER_ACCESS_TOKEN)
+        ACCESS_TOKENS.add(USER_ACCESS_TOKEN)
     
     else:
         USER_ACCESS_TOKEN = ''

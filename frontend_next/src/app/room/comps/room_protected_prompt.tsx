@@ -44,7 +44,7 @@ export default function RoomProtectedPrompt({ onSubmit }: RoomProtectedPromptPro
             disabled={!trimmed || isSubmitting}
             onClick={handleSubmit}
           >
-            {isSubmitting ? "Checking..." : "Log in"}
+            Log in
           </button>
         </div>
       </div>

@@ -1,13 +1,16 @@
-from sqlalchemy import false
+from sqlalchemy import false, and_, func
 from app_independencies import Request, PREFIX
-from modules import db_conn
+# from modules import db_conn
 from sqlalchemy.orm import Session
-from fastapi import BackgroundTasks, Query, APIRouter
+from fastapi import BackgroundTasks, Query, APIRouter, Depends
+from db_conn import get_db
+from views.models import room_info
 import os, shutil, uuid
 import pandas as pd
 from typing import List, Dict
 from pydantic import BaseModel
 from typing import Literal
+import json
 
 
 router = APIRouter()
@@ -17,14 +20,15 @@ ACCESS_TOKENS = set()
 
 
 @router.get('/does_room_exists')
-async def view(request: Request, received_room_id:str = Query(...), bg_tasks: BackgroundTasks = None):
-    
+async def view(request: Request, received_room_id:str = Query(...),db: Session = Depends(get_db), bg_tasks: BackgroundTasks = None):
+    ...
     USER_ID = request.state.user_id
     FOUND_ROOM = False
     
-    result = db_conn.read_rooms(js_visable=True)
+    # result = db_conn.read_rooms(js_visable=True)
+    result = db.query(room_info).filter(room_info.visible).all()
     for record in result:
-        room_id = record[len(record)-1]
+        room_id = record.token
         if received_room_id == room_id:
             room_data = record
             print('Room found')
@@ -34,37 +38,48 @@ async def view(request: Request, received_room_id:str = Query(...), bg_tasks: Ba
     if not FOUND_ROOM:
         return {'room_found': False}
     
-    ROOM_PROTECTED = True if room_data[3] == 'private' else False
+    ROOM_PROTECTED = True if room_data.privacy.value == 'private' else False
     ALLOW_USER = False
 
     if ROOM_PROTECTED:
-        if db_conn.is_user_allowed(room_id, USER_ID):
+        result = db.query(room_info).filter(and_(
+                room_info.token == room_id, 
+                func.JSON_CONTAINS(
+                    room_info.allowed_users,
+                    json.dumps(str(USER_ID))
+                )
+        )).first()
+        if result:
+            print('user allowed')
             ALLOW_USER = True
     else:
         ALLOW_USER = True
         
 
-    if ALLOW_USER:
-        USER_ACCESS_TOKEN = str(uuid.uuid4())
+    # if ALLOW_USER:
+    #     USER_ACCESS_TOKEN = str(uuid.uuid4())
         
-        if not STASHED_ROOMS.get(received_room_id):
-            STASHED_ROOMS[received_room_id] = [USER_ID]
-            # STASHED_ROOMS[received_room_id] = [USER_ACCESS_TOKEN]
-        else:
-            STASHED_ROOMS[received_room_id].append(USER_ACCESS_TOKEN)
-            STASHED_ROOMS[received_room_id] = list(set(STASHED_ROOMS[received_room_id]))
+    #     if not STASHED_ROOMS.get(received_room_id):
+    #         STASHED_ROOMS[received_room_id] = [USER_ID]
+    #         # STASHED_ROOMS[received_room_id] = [USER_ACCESS_TOKEN]
+    #     else:
+    #         STASHED_ROOMS[received_room_id].append(USER_ACCESS_TOKEN)
+    #         STASHED_ROOMS[received_room_id] = list(set(STASHED_ROOMS[received_room_id]))
         
-        # print('added token', USER_ACCESS_TOKEN)
-        # ACCESS_TOKENS.add(USER_ACCESS_TOKEN)
+    #     # print('added token', USER_ACCESS_TOKEN)
+    #     # ACCESS_TOKENS.add(USER_ACCESS_TOKEN)
     
-    else:
-        USER_ACCESS_TOKEN = ''
+    # else:
+    #     USER_ACCESS_TOKEN = ''
+        
+    # import asyncio
+    # asyncio.sleep(300)
         
     return {
         'room_found': True,
         'ROOM_PROTECTED': ROOM_PROTECTED,
         'ALLOW_USER': ALLOW_USER,
-        'USER_ACCESS_TOKEN': USER_ACCESS_TOKEN
+        # 'USER_ACCESS_TOKEN': USER_ACCESS_TOKEN
     }
     
     ...
@@ -78,35 +93,45 @@ class ROOM_CREDS_PROPS(BaseModel):
     received_passwd: str
 
 @router.post('/check_room_password')
-async def view(request: Request, userdata: ROOM_CREDS_PROPS, bg_tasks: BackgroundTasks = None):
+async def view(request: Request, userdata: ROOM_CREDS_PROPS,db: Session = Depends(get_db), bg_tasks: BackgroundTasks = None):
     
     USER_ID = request.state.user_id
     FOUND_ROOM = False
     print(USER_ID,'??')
     
-    result = db_conn.read_rooms(js_visable=True)
-    for record in result:
-        room_id = record[len(record)-1]
-        if userdata.received_room_id == room_id:
-            room_data = record
-            print('Room found')
-            FOUND_ROOM = True
-            break
-    
-    if not FOUND_ROOM:
-        return {'room_found': False}
-    
-    room_passwd = room_data[2]
-    print(room_passwd)
-    if room_passwd == userdata.received_passwd:
-        print('correct passwd for this room')
-        db_conn.stash_user_into_room(userdata.received_room_id, USER_ID)
-        return {'refresh': True}
-    
-    # return {
+    result = db.query(room_info).filter(room_info.token==userdata.received_room_id).first()
+    if result:
+    # for record in result:
+    #     room_id = record[len(record)-1]
+    #     if userdata.received_room_id == room_id:
+    #         room_data = record
+    #         print('Room found')
+    #         FOUND_ROOM = True
+    #         break
+        
+
+        
+        room_passwd = result.password
+        print(room_passwd)
+        if room_passwd == userdata.received_passwd:
+            print('correct passwd for this room')
+            altered_allowed_users = set(result.allowed_users.copy())
+            altered_allowed_users.add(USER_ID)
+            result.allowed_users = list(altered_allowed_users)
+            db.commit()
+         
+            # db_conn.stash_user_into_room(userdata.received_room_id, USER_ID)
+            return {'refresh': True}
+        else:
+            print('password incorrect')
+        
+    #     return {
     #     'room_found': True,
     #     'ROOM_PROTECTED': ROOM_PROTECTED,
     #     'ALLOW_USER': ALLOW_USER
     # }
+    
+    else:
+        return {'room_found': False}
     
     ...

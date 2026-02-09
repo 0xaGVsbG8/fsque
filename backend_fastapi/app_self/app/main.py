@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import subprocess,threading
 import os
 from app_independencies import OS,router, origins
-from modules import db_conn
+# from modules import db_conn
 from views import router as views_router
 from fastapi import Depends
 from sqlalchemy.orm import Session

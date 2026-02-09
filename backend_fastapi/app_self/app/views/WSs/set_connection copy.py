@@ -4,9 +4,7 @@ import json
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 # from ..APIs.verify_room import STASHED_ROOMS, ACCESS_TOKENS
 from ..APIs.verify_room import STASHED_ROOMS
-from db_conn import get_db
-from views.models import room_info
-from sqlalchemy.orm import Session
+
 
 router = APIRouter()
 
@@ -53,26 +51,19 @@ def remove_connection(room_id: str, ws: WebSocket):
     return True # Room still has users
 
 
-def validate_token_access(ROOM_ID: str, USER_ID: str):
-    
-    db = next(get_db())
-    db: Session
-    try:
-        result = db.query(room_info).filter(room_info.token==ROOM_ID).first()
-        if result:
-            print('room exists!')
-            if USER_ID in result.allowed_users or result.privacy.value == 'public':
-                print('Token is valid')
-                return True
+def validate_token_access(ROOM_ID: str,USER_ACCESS_TOKEN: str):
+    if ROOM_ID in  STASHED_ROOMS:
+        print('room exists!')
+        ACCESS_TOKENS = set(STASHED_ROOMS[ROOM_ID])
+        print(ACCESS_TOKENS)
+        if USER_ACCESS_TOKEN in ACCESS_TOKENS:
+            print('Token is valid')
+            return True
+    print('denying access')
+    return False
+            # await ws.accept() 
             
-        print('denying access')
-        return False
-    
-    finally:
-        db.close()
-         
-            
-            
+            # Add connection to the room
 
 
 
@@ -81,12 +72,11 @@ async def websocket_endpoint(ws: WebSocket):
     
     USER_ACCESS_TOKEN = str(ws.query_params.get("USER_ACCESS_TOKEN"))
     ROOM_ID = str(ws.query_params.get("ROOM_ID"))
-    USER_ID = ws.cookies.get("user_id")
     
     if USER_ACCESS_TOKEN and ROOM_ID:
-        print(f"Connecting to room: {ROOM_ID} ")
+        print(f"Received token: {USER_ACCESS_TOKEN} ")
         
-        if validate_token_access(ROOM_ID, USER_ID):
+        if validate_token_access(ROOM_ID, USER_ACCESS_TOKEN):
             
             await ws.accept()
 

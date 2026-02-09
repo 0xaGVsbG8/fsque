@@ -50,6 +50,7 @@ export default function CreateRoomPanel({ onCreated, onClose }: CreateRoomPanelP
       const response = await fetch(base_fetch+"/make_room", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: 'include',
         body: JSON.stringify({
           name,
           passwd: formData.protected ? password : "",

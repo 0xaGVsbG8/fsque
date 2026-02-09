@@ -30,6 +30,18 @@ def get_db():
     finally:
         db.close()
         
+
+def test_add_room():
+    
+    db_local = SessionLocal() 
+    db_local.add(room_info(
+        name='xd',
+        owner="xd",
+        password="2",
+        allowed_users = [1,2]
+    ))
+    db_local.commit()
+    db_local.close()
         
 if __name__=='__main__':
     from views.models import room_info
@@ -37,4 +49,7 @@ if __name__=='__main__':
     rooms = db_local.query(room_info).all()
 
     for room in rooms:
-        print(room.name)
+        print(room.name, room.visible)
+    db_local.close()
+    test_add_room()
+    

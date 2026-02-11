@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker
-
+import sys, time
 
 
 #FOR DOCKER USAGE without compose
@@ -33,6 +33,8 @@ def get_db():
 
 def test_add_room():
     
+    from app.views.models import room_info
+    
     db_local = SessionLocal() 
     db_local.add(room_info(
         name='xd',
@@ -42,14 +44,34 @@ def test_add_room():
     ))
     db_local.commit()
     db_local.close()
+    
+
+def is_db_working():
+    from app.views.models import room_info
+    
+    time.sleep(1)
+    
+    
+    try:
+        db_local = SessionLocal() 
+        rooms = db_local.query(room_info).all()
+
+        for room in rooms:
+            # print(room.name, room.visible)
+            ...
+            
+        print('Db works!')
+        
+    except Exception as e:
+        print('Database is not responding!')
+        sys.exit()
+    
+    finally:
+        db_local.close()
+        
+    
         
 if __name__=='__main__':
-    from views.models import room_info
-    db_local = SessionLocal() 
-    rooms = db_local.query(room_info).all()
-
-    for room in rooms:
-        print(room.name, room.visible)
-    db_local.close()
+    is_db_working()
     test_add_room()
     

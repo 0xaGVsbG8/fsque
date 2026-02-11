@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation'
 import RoomProtectedPrompt from '../comps/room_protected_prompt'
 import launch from '../comps/app_modules/mk_conn'
 import { cookie_finder,set_cookie } from '@/app/modules/cookie_manager'
+import { user_ws_conn_info } from '@/app/types'
 
 type RoomDataProps = {
     room_found: boolean
@@ -31,7 +32,7 @@ const View = () => {
     const [handles, setHandles] = useState<any[]>([]) // FileSystemFileHandle[]
 
     const [conns_counter, set_conns_counter] = useState<number | null>(null)
-    const [connected_usernames, set_connected_usernames] = useState<string[] | null>(null)
+    const [users_ws_conn_info, set_users_ws_conn_info] = useState<user_ws_conn_info[] | null>(null)
 
     const params = useParams()
 
@@ -114,7 +115,7 @@ const View = () => {
       useEffect(()=>{
         setTimeout(() => {
             console.log('launching')
-            launch({set_conns_counter, set_connected_usernames})
+            launch({set_conns_counter, set_users_ws_conn_info})
         }, 1000);
       },[])
     return (
@@ -125,9 +126,13 @@ const View = () => {
 
             <>Connected users: {conns_counter}</>
 
-            {connected_usernames && connected_usernames.map((value, index)=>{
+            {users_ws_conn_info && users_ws_conn_info.map((value, index)=>{
                 return (
-                    <div key={index+value}>{value}</div>
+                    <>
+                        {value.username}
+                        {value.payload}
+                    </>
+                    // <div key={index+value}>{value}</div>
                 )
             })}
 

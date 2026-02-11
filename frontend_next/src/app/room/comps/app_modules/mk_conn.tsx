@@ -1,15 +1,16 @@
 import { base_ws } from "@/app/app_conf"
 import { cookie_finder } from "@/app/modules/cookie_manager"
+import { user_ws_conn_info } from "@/app/types"
 
 export type launch_props = {
     set_conns_counter: React.Dispatch<React.SetStateAction<number | null>>
-    set_connected_usernames: React.Dispatch<React.SetStateAction<string[] | null>> 
+    set_users_ws_conn_info: React.Dispatch<React.SetStateAction<user_ws_conn_info[] | null>> 
 }
 
 let connected: boolean = false
 
 
-const launch = ({set_conns_counter, set_connected_usernames}:launch_props) => {
+const launch = ({set_conns_counter, set_users_ws_conn_info}:launch_props) => {
     const USER_ACCESS_TOKEN = cookie_finder('USER_ACCESS_TOKEN')
     const ROOM_ID = cookie_finder('ROOM_ID')
 
@@ -37,8 +38,8 @@ const launch = ({set_conns_counter, set_connected_usernames}:launch_props) => {
             if(data.connected_users){
                 set_conns_counter(data.connected_users)
             }
-            if(data.username_ls){
-                set_connected_usernames(data.username_ls)
+            if(data.users_ws_conn_info){
+                set_users_ws_conn_info(data.users_ws_conn_info as user_ws_conn_info[])
             }
         }
 

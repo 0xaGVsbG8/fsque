@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import { base_fetch } from '@/app/app_conf'
+import { base_fetch, base_ws } from '@/app/app_conf'
 import { useParams } from 'next/navigation'
 import RoomProtectedPrompt from '../comps/room_protected_prompt'
 import launch from '../comps/app_modules/mk_conn'
@@ -13,6 +13,8 @@ type RoomDataProps = {
     ROOM_PROTECTED: boolean
     ALLOW_USER: boolean
 }
+
+let opened_single_file_transfer: boolean = false
 
 const does_room_exists = async (room_id: string): Promise<RoomDataProps> => {
     const response = await fetch(base_fetch + '/does_room_exists' + `/?received_room_id=${room_id}`, { credentials: 'include' })
@@ -83,6 +85,9 @@ const View = () => {
             const newHandles = await picker({ multiple: true })
 
             const files = await Promise.all(newHandles.map(h => h.getFile()))
+            setFileLs(prev => [...prev, ...files])
+         
+
             // just_files_names.current = [...just_files_names.current, ...files.map((item)=>{console.log(item.name); return item.name})]
             just_files_names.current = [...just_files_names.current, ...files.map((item)=>{console.log(item.name); return {'filename': item.name, 'filesize': item.size}})]
             // just_files_names.current =files.map((item)=>{console.log(item.name); return {'filename': item.name, 'filesize': item.size}})
@@ -96,10 +101,93 @@ const View = () => {
 
             console.log('Wybrane pliki:', just_files_names.current)
 
-            // setFileLs(prev => [...prev, ...files])
             // setHandles(prev => [...prev, ...newHandles])
         } catch (e) {
             console.log('User anulował wybór pliku')
+        }
+    }
+    
+    const DownloadSingleFile = async (filename: string, user_id:string) => {
+        if (!('showSaveFilePicker' in window)) return
+        if(!ws_ref.current) return
+    
+        try {
+            const fileHandle =  await (window as any).showSaveFilePicker({
+                suggestedName: filename,
+                types: [
+                    {
+                        description: "Text file",
+                        accept: { "text/plain": [".txt"] }
+                    }
+                ]
+            })
+
+            const writable = await fileHandle.createWritable()
+
+
+
+            const handle_transfer = async(event: MessageEvent) => {
+                const data = JSON.parse(event.data)
+
+                console.log(data, 'pciker')
+
+                if (data.incoming_transfer && data.TRANSFER_ACCESS_TOKEN) {
+
+                    if(opened_single_file_transfer) return
+                    opened_single_file_transfer = true
+
+                    const TRANSFER_ACCESS_TOKEN = data.TRANSFER_ACCESS_TOKEN
+                    console.log("Transfer accepted:", TRANSFER_ACCESS_TOKEN)
+
+                    const local_ws = new WebSocket(base_ws + '/make-transfer' + `?TRANSFER_ACCESS_TOKEN=${TRANSFER_ACCESS_TOKEN}`)
+                    // ws.binaryType = "arraybuffer"
+                    
+                    setTimeout(() => {
+                        opened_single_file_transfer = false
+                    }, 150);
+
+                    local_ws.onopen = async() => {
+                        console.log('transfer opened')
+                        local_ws.send(JSON.stringify({'ready_for_transfer':true, 'role': data.role}))
+                    }
+
+                    local_ws.onmessage = async(message) => {
+                        console.log(message)
+                        if (message.data instanceof Blob) {
+                            console.log("chunk received")
+                            await writable.write(message.data)
+                            await writable.close()
+                            local_ws.send(JSON.stringify({'received chunk':true}))
+
+                        } 
+                    }
+
+                    local_ws.onclose = () => {
+                        console.log('conn lose')
+                    }
+
+                    // if(data.role=='client'){
+                    //     console.log(data, '??')
+                    // }
+
+                    // if(ws_ref.current) ws_ref.current.removeEventListener("message", handle_transfer)
+
+                }
+                
+            }
+
+
+            ws_ref.current.addEventListener("message", handle_transfer)
+
+            ws_ref.current.send(JSON.stringify({'user_single_file_transfer_request': {'filename':filename,'file_owner_id':user_id}}))
+
+            // await writable.close()
+    
+            
+            // await writable.close()
+    
+        } catch (err) {
+            console.error(err)
         }
     }
 
@@ -129,9 +217,9 @@ const View = () => {
       useEffect(()=>{
         setTimeout(() => {
             console.log('launching')
-            launch({ws_ref, set_conns_counter, set_users_ws_conn_info})
+            launch({ws_ref, set_conns_counter, set_users_ws_conn_info, fileLs})
         }, 1000);
-      },[])
+      },[fileLs])
     return (
         <>
             {roomData && !roomData.ALLOW_USER ? (
@@ -145,7 +233,7 @@ const View = () => {
                     <div key={user.user_id + uIndex} style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '15px', backgroundColor: '#fff' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', borderBottom: '1px solid #eee', paddingBottom: '5px' }}>
                             <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#000' }}>
-                                {user.username + (user.username == cookie_finder('username') ? ' (Me)' : null)}
+                                {user.username + (user.username == cookie_finder('username') ? ' (Me)' : '')}
                             </div>
                             {user.payload && user.payload.some(p => typeof p === 'object' && p.filename) && (
                                 <button
@@ -173,10 +261,13 @@ const View = () => {
                                             <div>
                                                 {item.filesize ? (item.filesize / 1024).toFixed(2) + ' KB' : '0 KB'}
                                             </div>
-                                            <div>
-                                                <button style={{ padding: '5px 10px', cursor: 'pointer', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: '5px', width: '100%', color: '#000', backgroundColor: '#eee', border: '1px solid #ccc', borderRadius: '4px' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'row', gap: '5px',justifyContent:'center', alignContent:'center'}}>
+                                                {/* <button style={{ padding: '5px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', backgroundColor: '#eee', border: '1px solid #ccc', borderRadius: '4px' }}>
                                                     <span style={{ fontWeight: 'bold' }}>Download</span>
-                                                    <span style={{ fontSize: '10px', opacity: 0.6 }}>Subtitle</span>
+                                                </button> */}
+                                                <input type='checkbox' value={item.filename}></input>
+                                                <button onClick={()=>DownloadSingleFile(item.filename, user.user_id)} style={{ padding: '5px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', backgroundColor: '#eee', border: '1px solid #ccc', borderRadius: '4px' }}>
+                                                    <span style={{ fontWeight: 'bold' }}>Down</span>
                                                 </button>
                                             </div>
                                         </div>

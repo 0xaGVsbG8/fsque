@@ -88,34 +88,29 @@ def register_user_in_room(room_id:str, USERNAME: str, USER_ID:str):
         ...
     
     
-    print('user registered', USERS_PAYLOAD)
+    # print('user registered', USERS_PAYLOAD)
 
 
-def unregister_user_in_room(room_id:str, USERNAME: str, USER_ID:str):
+def unregister_user_in_room(room_id:str, USER_ID:str):
     
     if USERS_PAYLOAD.get('room_'+room_id):
         if USERS_PAYLOAD['room_'+room_id].get('user_'+USER_ID):
-            print('found user that left')
             del USERS_PAYLOAD['room_'+room_id]['user_'+USER_ID]
         ...
     
     
-    print('user registered', USERS_PAYLOAD)
     
-    
-# def unregister_user_in_room(room_id:str, USERNAME: str, USER_ID:str):
-#     if room_id in USERS_PAYLOAD:
-        
+
         
 def store_connection(room_id:str,ws: WebSocket):
-    ROOM_CONNECTIONS.setdefault(room_id, []).append(ws)
+    # ROOM_CONNECTIONS.setdefault(room_id, []).append(ws)
     
-    # if not ROOM_CONNECTIONS.get(room_id):
-    #     ROOM_CONNECTIONS[room_id] = [ws]
-    # else:
-    #     ROOM_CONNECTIONS[room_id].append(ws)
+    if not ROOM_CONNECTIONS.get(room_id):
+        ROOM_CONNECTIONS[room_id] = [ws]
+    else:
+        ROOM_CONNECTIONS[room_id].append(ws)
     
-    print('Connection stored')
+    # print('Connection stored')
 
 
 def remove_connection(room_id:str,ws: WebSocket):
@@ -136,6 +131,53 @@ async def broadcast_occupancy(room_id):
             await ws.send_json({'connected_users':len(ROOM_CONNECTIONS[room_id])})
             
 
+async def broadcast_payloads(room_id):
+    
+    if room_id in ROOM_CONNECTIONS:
+        if USERS_PAYLOAD.get('room_' + room_id):
+            ROOM_PAYLOADS =  USERS_PAYLOAD['room_'+room_id]
+            ROOM_PAYLOADS: dict
+            user_ws_conn_info = []
+       
+            for key,values in ROOM_PAYLOADS.items():
+                
+                #example record: user_68684664-9e2c-4d1c-8769-e2fea132ea93 {'username': 'xd', 'payload': [2]}
+                USER_ID = str(key).replace('user_','')
+                USERNAME = values.get('username')
+                PAYLOAD = values.get('payload')
+                
+                data = {
+                    'username': USERNAME,
+                    'user_id': USER_ID,
+                    'payload': PAYLOAD
+                }
+                
+                user_ws_conn_info.append(data)
+                
+                
+                # print(USER_ID, USERNAME, values)
+                
+            for ws in ROOM_CONNECTIONS[room_id]:
+                ws: WebSocket    
+                await ws.send_json({
+                    'users_ws_conn_info': user_ws_conn_info
+                })             
+
+def update_users_payload(room_id, user_id, payload):
+    
+    if USERS_PAYLOAD.get('room_' + room_id):
+        ROOM_DATA = USERS_PAYLOAD.get('room_' + room_id)
+        if ROOM_DATA.get('user_' + user_id):
+            USER_DATA = ROOM_DATA.get('user_' + user_id)
+            USER_DATA['payload'] = payload
+            # print(USER_PAYLOAD, ROOM_DATA, 'xd?')
+            # print(ROOM_DATA, 'xd?')
+            print('USERS PAYLOAD ALTERED')
+            return True
+    
+    return False
+        
+        
 
 
 
@@ -154,18 +196,31 @@ async def websocket_endpoint(ws: WebSocket):
             store_connection(ROOM_ID, ws)
             register_user_in_room(ROOM_ID,USERNAME, USER_ID)
             await broadcast_occupancy(ROOM_ID)
+            await broadcast_payloads(ROOM_ID)
             
             try:
                 while True:
                     data = await ws.receive_text()
+                    try:
+                        data = json.loads(data)
+                        print(data)
+                        if data.get('users_payload'):
+                            print(f'received payload from user: {USERNAME} --- AND with an id of: {USER_ID}')
+                            if update_users_payload(ROOM_ID, USER_ID, data.get('users_payload')):
+                                await broadcast_payloads(ROOM_ID)
+                        
+                    except json.JSONDecodeError:
+                        print('data not in json')
                     # try:
                     ...
                         
             except WebSocketDisconnect:
                 remove_connection(ROOM_ID, ws)
-                unregister_user_in_room(ROOM_ID,USERNAME, USER_ID)
+                unregister_user_in_room(ROOM_ID, USER_ID)
                 
                 await broadcast_occupancy(ROOM_ID)
+                await broadcast_payloads(ROOM_ID)
+                
                 print('user disconnected')
             
 

@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { base_fetch } from '@/app/app_conf'
 import { useParams } from 'next/navigation'
 import RoomProtectedPrompt from '../comps/room_protected_prompt'
 import launch from '../comps/app_modules/mk_conn'
 import { cookie_finder,set_cookie } from '@/app/modules/cookie_manager'
-import { user_ws_conn_info } from '@/app/types'
+import { payload_props, user_ws_conn_info } from '@/app/types'
 
 type RoomDataProps = {
     room_found: boolean
@@ -33,6 +33,9 @@ const View = () => {
 
     const [conns_counter, set_conns_counter] = useState<number | null>(null)
     const [users_ws_conn_info, set_users_ws_conn_info] = useState<user_ws_conn_info[] | null>(null)
+    const [expandedUsers, setExpandedUsers] = useState<Record<string, boolean>>({})
+    const ws_ref = useRef<WebSocket | null>(null)
+    const just_files_names = useRef<payload_props[]>([])
 
     const params = useParams()
 
@@ -80,10 +83,21 @@ const View = () => {
             const newHandles = await picker({ multiple: true })
 
             const files = await Promise.all(newHandles.map(h => h.getFile()))
-            console.log('Wybrane pliki:', files)
+            // just_files_names.current = [...just_files_names.current, ...files.map((item)=>{console.log(item.name); return item.name})]
+            just_files_names.current = [...just_files_names.current, ...files.map((item)=>{console.log(item.name); return {'filename': item.name, 'filesize': item.size}})]
+            // just_files_names.current =files.map((item)=>{console.log(item.name); return {'filename': item.name, 'filesize': item.size}})
 
-            setFileLs(prev => [...prev, ...files])
-            setHandles(prev => [...prev, ...newHandles])
+            if(ws_ref.current){
+                console.log('updating payload')
+                ws_ref.current.send(JSON.stringify({
+                    'users_payload':just_files_names.current
+                }))
+            }
+
+            console.log('Wybrane pliki:', just_files_names.current)
+
+            // setFileLs(prev => [...prev, ...files])
+            // setHandles(prev => [...prev, ...newHandles])
         } catch (e) {
             console.log('User anulował wybór pliku')
         }
@@ -115,7 +129,7 @@ const View = () => {
       useEffect(()=>{
         setTimeout(() => {
             console.log('launching')
-            launch({set_conns_counter, set_users_ws_conn_info})
+            launch({ws_ref, set_conns_counter, set_users_ws_conn_info})
         }, 1000);
       },[])
     return (
@@ -126,15 +140,53 @@ const View = () => {
 
             <>Connected users: {conns_counter}</>
 
-            {users_ws_conn_info && users_ws_conn_info.map((value, index)=>{
-                return (
-                    <>
-                        {value.username}
-                        {value.payload}
-                    </>
-                    // <div key={index+value}>{value}</div>
-                )
-            })}
+            <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '15px', color: '#333' }}>
+                {users_ws_conn_info && users_ws_conn_info.map((user, uIndex) => (
+                    <div key={user.user_id + uIndex} style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '15px', backgroundColor: '#fff' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', borderBottom: '1px solid #eee', paddingBottom: '5px' }}>
+                            <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#000' }}>
+                                {user.username + (user.username == cookie_finder('username') ? ' (Me)' : null)}
+                            </div>
+                            {user.payload && user.payload.some(p => typeof p === 'object' && p.filename) && (
+                                <button
+                                    onClick={() => setExpandedUsers(prev => ({ ...prev, [user.user_id]: !prev[user.user_id] }))}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', color: '#555', padding: '2px 8px' }}
+                                >
+                                    {expandedUsers[user.user_id] === false ? '▼' : '▲'}
+                                </button>
+                            )}
+                        </div>
+                        
+                        {expandedUsers[user.user_id] !== false && user.payload && user.payload.some(p => typeof p === 'object' && p.filename) && (
+                            <div style={{ paddingLeft: '10px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 150px', fontWeight: 'bold', color: '#555', fontSize: '0.9rem' }}>
+                                        <div>Filename</div>
+                                        <div>Size</div>
+                                        <div style={{ textAlign: 'center' }}>Action</div>
+                                    </div>
+                                    {user.payload.filter(p => typeof p === 'object' && p.filename).map((item, pIndex) => (
+                                        <div key={pIndex} style={{ display: 'grid', gridTemplateColumns: '1fr 120px 150px', alignItems: 'center', padding: '5px 0', borderBottom: '1px dashed #eee', color: '#333' }}>
+                                            <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                {item.filename}
+                                            </div>
+                                            <div>
+                                                {item.filesize ? (item.filesize / 1024).toFixed(2) + ' KB' : '0 KB'}
+                                            </div>
+                                            <div>
+                                                <button style={{ padding: '5px 10px', cursor: 'pointer', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: '5px', width: '100%', color: '#000', backgroundColor: '#eee', border: '1px solid #ccc', borderRadius: '4px' }}>
+                                                    <span style={{ fontWeight: 'bold' }}>Download</span>
+                                                    <span style={{ fontSize: '10px', opacity: 0.6 }}>Subtitle</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                ))}
+            </div>
 
             <button onClick={pickFile}>Pick Files</button>
             <button onClick={eraseFirstFileFromDisk}>Delete First File</button>

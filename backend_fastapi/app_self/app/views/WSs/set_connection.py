@@ -42,9 +42,9 @@ def register_user_in_room(room_id:str, USERNAME: str, USER_ID:str):
     
     
     if not USERS_PAYLOAD.get('room_'+room_id):
-        USERS_PAYLOAD['room_'+room_id] = {'user_'+USER_ID:{'username':USERNAME,'payload':[2]}}
+        USERS_PAYLOAD['room_'+room_id] = {'user_'+USER_ID:{'username':USERNAME,'payload':[]}}
     else:
-        USERS_PAYLOAD['room_'+room_id]['user_'+USER_ID]={'username':USERNAME,'payload':[2]}
+        USERS_PAYLOAD['room_'+room_id]['user_'+USER_ID]={'username':USERNAME,'payload':[]}
         # ROOM_CONNECTIONS[room_id].append(ws)
         ...
     
@@ -99,6 +99,8 @@ async def broadcast_occupancy(room_id):
 
 async def broadcast_payloads(room_id):
     
+    print('spreading updated payloads')
+    
     if room_id in ROOM_CONNECTIONS:
         if USERS_PAYLOAD.get('room_' + room_id):
             ROOM_PAYLOADS =  USERS_PAYLOAD['room_'+room_id]
@@ -122,6 +124,8 @@ async def broadcast_payloads(room_id):
                 
                 
                 # print(USER_ID, USERNAME, values)
+                
+            print(user_ws_conn_info, '??')
                 
             for key, ws in ROOM_CONNECTIONS[room_id].items():
                 ws: WebSocket    

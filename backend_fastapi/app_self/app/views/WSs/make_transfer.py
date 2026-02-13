@@ -1,5 +1,6 @@
 
 import json
+from sys import exception
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from sqlalchemy import true
 # from ..APIs.verify_room import STASHED_ROOMS, ACCESS_TOKENS
@@ -76,7 +77,9 @@ async def websocket_endpoint(ws: WebSocket):
                         
                         
                 if ROLE == 'HOST':
+                    CLIENT_WS: WebSocket
                     HOST_NOTIFIED = False
+                    
                     chunk_counter = 0
                     while True:
                         if SINGLE_FILE_TRANSFER_ROOMS[TRANSFER_ACCESS_TOKEN].get('client_ready'):
@@ -85,7 +88,24 @@ async def websocket_endpoint(ws: WebSocket):
                             HOST_NOTIFIED = True
                             
                             ROOM_DATA['received_chunk'] = False
-                            chunks = await ws.receive_bytes()
+                            
+                            msg =  await ws.receive()
+                            
+                            if 'text' in msg:
+                                msg = json.loads(msg['text'])
+                                if msg.get('transfer_complete'):
+                                    print('transfer complete!')
+                                    await CLIENT_WS.send_json({'transfer_complete':True})
+                                    print('client notified')
+                                  
+                                
+                            if 'bytes' in msg:
+                                chunk = msg['bytes']
+                                print('received chunk')
+                                await CLIENT_WS.send_bytes(chunk)
+                                print('chunk sent')
+                                
+                            # chunks =
                             # while True:
                             #     print('xd?')
                             #     if ROOM_DATA['received_chunk'] == True:
@@ -95,9 +115,7 @@ async def websocket_endpoint(ws: WebSocket):
                                 # await asyncio.sleep(0.05)
                             
                             # await asyncio.sleep(1)
-                            print('received chunks')
-                            await CLIENT_WS.send_bytes(chunks)
-                            print('chunks sent')
+                  
                             
                             
                         else:

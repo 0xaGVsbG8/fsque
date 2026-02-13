@@ -39,6 +39,8 @@ const View = () => {
     const ws_ref = useRef<WebSocket | null>(null)
     const just_files_names = useRef<payload_props[]>([])
 
+    const fileLsRefForTransfer = useRef<File[]|null>(null)
+
     const params = useParams()
 
     useEffect(() => {
@@ -86,6 +88,7 @@ const View = () => {
 
             const files = await Promise.all(newHandles.map(h => h.getFile()))
             setFileLs(prev => [...prev, ...files])
+            fileLsRefForTransfer.current = [...fileLsRefForTransfer.current ? fileLsRefForTransfer.current : [], ...files]
          
 
             // just_files_names.current = [...just_files_names.current, ...files.map((item)=>{console.log(item.name); return item.name})]
@@ -156,10 +159,18 @@ const View = () => {
                         if (message.data instanceof Blob) {
                             console.log("chunk received")
                             await writable.write(message.data)
-                            await writable.close()
                             local_ws.send(JSON.stringify({'received chunk':true}))
-
                         } 
+                        else{
+                            try{
+                                const data = JSON.parse(message.data)
+                                if(data.transfer_complete){
+                                    console.log('transfer complete (CLIENT)')
+                                    await writable.close()
+                                }
+                            }catch(err){}
+                        }
+
                     }
 
                     local_ws.onclose = () => {
@@ -217,10 +228,10 @@ const View = () => {
       useEffect(()=>{
         setTimeout(() => {
             console.log('launching')
-            launch({ws_ref, set_conns_counter, set_users_ws_conn_info, fileLs})
+            launch({ws_ref, set_conns_counter, set_users_ws_conn_info, fileLsRefForTransfer})
         }, 1000);
-      },[fileLs])
-    return (
+        },[])
+return (
         <>
             {roomData && !roomData.ALLOW_USER ? (
                 <RoomProtectedPrompt onSubmit={handleRoomLogin} />

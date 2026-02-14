@@ -15,12 +15,39 @@ let opened_single_file_transfer = false
 
 const CHUNK_SIZE = 64 * 1024 // 64KB chunks
 
+
+function waitForAck(ws: WebSocket): Promise<void> {
+    return new Promise((resolve) => {
+
+        const handler = (event: MessageEvent) => {
+            console.log(event, 'handler?')
+            if (typeof event.data === "string") {
+                const data = JSON.parse(event.data)
+
+                if (data.chunk_received) {
+                    console.log('client received a chunk')
+                    ws.removeEventListener("message", handler)
+                    resolve()
+                }
+            }
+        }
+
+        ws.addEventListener("message", handler)
+    })
+}
+
+
+
 async function sendFileInChunks(file: File, ws: WebSocket) {
     let offset = 0
     while (offset < file.size) {
+
         const slice = file.slice(offset, offset + CHUNK_SIZE)
         const buffer = await slice.arrayBuffer()
+
         ws.send(buffer)
+        await waitForAck(ws)
+
         offset += CHUNK_SIZE
     }
     // Send an empty message to signal end of file

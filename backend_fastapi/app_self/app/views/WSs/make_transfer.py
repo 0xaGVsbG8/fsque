@@ -67,10 +67,10 @@ async def websocket_endpoint(ws: WebSocket):
                             print('client ready')
                             SINGLE_FILE_TRANSFER_ROOMS[TRANSFER_ACCESS_TOKEN]['client_ready'] = True
                             # await asyncio.sleep(3600)
-                            data = await ws.receive_json()
-                            if data.get('received_chunk'):
-                                print('client received chunk')
-                                ROOM_DATA['received_chunk'] = True
+                            # data = await ws.receive_json()
+                            # if data.get('received_chunk'):
+                            #     print('client received chunk')
+                            #     ROOM_DATA['received_chunk'] = True
                                 
                             print(data)
                             await asyncio.sleep(3600)
@@ -104,6 +104,10 @@ async def websocket_endpoint(ws: WebSocket):
                                 print('received chunk')
                                 await CLIENT_WS.send_bytes(chunk)
                                 print('chunk sent')
+                                client_response = await CLIENT_WS.receive_json()
+                                if client_response.get('received_chunk'):
+                                    print('client received a chunk!')
+                                    await HOST_WS.send_json({'chunk_received':True})
                                 
                             # chunks =
                             # while True:

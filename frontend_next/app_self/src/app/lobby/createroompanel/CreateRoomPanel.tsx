@@ -67,7 +67,7 @@ export default function CreateRoomPanel({ onCreated, onClose }: CreateRoomPanelP
 
       const data = await response.json()
 
-      onCreated(formData);
+      // onCreated(formData);
       setFormData({
         name: "",
         protected: false,

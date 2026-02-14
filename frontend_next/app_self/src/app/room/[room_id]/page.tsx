@@ -222,7 +222,9 @@ const View = () => {
                 types: [
                     {
                         description: "Text file",
-                        accept: { "text/plain": [".txt"] }
+                        excludeAcceptAllOption: false,
+                        // accept: { "*/*": [".*"] }
+                        // accept: { "text/plain": [".txt"] }
                     }
                 ]
             })

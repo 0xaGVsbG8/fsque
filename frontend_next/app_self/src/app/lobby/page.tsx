@@ -10,6 +10,7 @@ import "./style.css";
 import { acquire_rooms_ls } from "../modules/acquire_rooms_ls";
 import get_username from "../modules/get_username";
 import { RoomEntry } from "../types";
+import { remove_cookie, set_cookie } from "../modules/cookie_manager";
 
 
 
@@ -151,6 +152,10 @@ export default function LobbyPage() {
         <div className={styles.container}>
           <h1 className={styles.title}>{app_title}</h1>
           <h2>Welcome, <span style={{textDecoration:'underline',color:'green'}}>{get_username()}</span></h2>
+          <button className={styles.logoutButton} onClick={()=>{
+            remove_cookie('username')
+            window.location.reload()
+          }}>Log out</button>
           <p className={styles.subtitle}>Find a room or create a new one.</p>
 
           <div className={styles.controls}>
@@ -174,30 +179,27 @@ export default function LobbyPage() {
             </button>
           </div>
 
-          <table className={styles.table}>
-            <thead className={styles.tableHeader}>
-              <tr>
-                <th className={styles.colRoom}>Room name</th>
-                <th className={styles.colOwner}>Owner</th>
-                <th className={styles.colProtected}>Protected</th>
-                <th className={styles.colOccupancy}>Occupancy</th>
-                <th className={styles.colAction}>Action</th>
-              </tr>
-            </thead>
-            <tbody>
+          <div className={styles.table}>
+            <div className={styles.tableHeader}>
+              <div className={styles.tableRow}>
+                <div className={styles.colRoom}>Room name</div>
+                <div className={styles.colOwner}>Owner</div>
+                <div className={styles.colProtected}>Protected</div>
+                <div className={styles.colOccupancy}>Occupancy</div>
+                <div className={styles.colAction}>Action</div>
+              </div>
+            </div>
+            <div className={styles.tableBody}>
               {filteredRooms.length === 0 ? (
-                <tr>
-                  <td className={styles.emptyState} colSpan={5}>
-                  {/* {rooms?.length === 0 ? 'No rooms match your search.' : 'loading in'} */}
+                <div className={styles.emptyState}>
                   {conn_established ? 'No rooms match your search.' : 'Establishing connection...'}
-                  </td>
-                </tr>
+                </div>
               ) : (
                 filteredRooms.map((room, index) => (
-                  <tr className={styles.tableRow} key={room.room_id+index}>
-                    <td className={`${styles.roomName} ${styles.colRoom}`}>{room.name}</td>
-                    <td className={styles.colOwner}>{room.owner}</td>
-                    <td className={styles.colProtected}>
+                  <div className={styles.tableRow} key={room.room_id+index}>
+                    <div className={`${styles.roomName} ${styles.colRoom}`}>{room.name}</div>
+                    <div className={styles.colOwner}>{room.owner}</div>
+                    <div className={styles.colProtected}>
                       <span
                         className={`${styles.pill} ${
                           room.protected ? styles.pillProtected : styles.pillOpen
@@ -205,18 +207,18 @@ export default function LobbyPage() {
                       >
                         {room.protected ? "Private" : "Public"}
                       </span>
-                    </td>
-                    <td className={styles.colOccupancy}>{room.occupancy}</td>
-                    <td className={styles.colAction}>
+                    </div>
+                    <div className={styles.colOccupancy}>{room.occupancy}</div>
+                    <div className={styles.colAction}>
                       <button className={styles.joinButton} type="button" onClick={()=>redirect_to_room(room.room_id)}>
                         Join
                       </button>
-                    </td>
-                  </tr>
+                    </div>
+                  </div>
                 ))
               )}
-            </tbody>
-          </table>
+            </div>
+          </div>
         </div>
       </div>
       {showCreate ? <div className={styles.overlay} /> : null}

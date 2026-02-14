@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
-import { default_app_url } from "../app_conf";
+import { useMemo, useState, useEffect, useRef } from "react";
+import { base_ws, default_app_url } from "../app_conf";
 import {redirect } from 'next/navigation'
 import { app_title } from "../app_conf";
 import CreateRoomPanel, { CreateRoomPayload } from "./createroompanel/CreateRoomPanel";
@@ -10,7 +10,6 @@ import "./style.css";
 import { acquire_rooms_ls } from "../modules/acquire_rooms_ls";
 import get_username from "../modules/get_username";
 import { RoomEntry } from "../types";
-
 
 
 
@@ -47,7 +46,8 @@ export default function LobbyPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [rooms, setRooms] = useState<RoomEntry[]|null>();
   const [fetching_rooms,set_fetching_rooms] = useState<boolean>(true)
-
+  const ws_opened = useRef<boolean>(false)
+  const [conn_established, set_conn_established] = useState<boolean>(false)
 
   const filteredRooms = useMemo<RoomEntry[]>(() => {
     const normalized = query.trim().toLowerCase();
@@ -101,8 +101,43 @@ export default function LobbyPage() {
   };
 
   const gather_rooms_ls = async() => {
-    const data = await acquire_rooms_ls()
-    setRooms([...data.rooms,...[{'name':'','protected': false, 'visible':false}]])
+    const ws_url = base_ws + '/lobby'
+
+    if(ws_opened.current) return
+    ws_opened.current = true
+
+    const ws = new WebSocket(ws_url)
+
+    ws.onopen = () => {
+      console.log('connection opened')
+      set_conn_established(true)
+    }
+
+    ws.onclose = () => {
+      console.log('connection closed!')
+      setRooms([])
+      set_conn_established(false)
+      ws.removeEventListener('message', handleMessage)
+      setTimeout(() => {
+        window.location.reload()
+      }, 3000);
+    }
+
+    const handleMessage = (msg: MessageEvent) => {
+      const data = JSON.parse(msg.data)
+      console.log(data)
+      if(data.rooms){
+        setRooms([...data.rooms,...[{'name':'','protected': false, 'visible':false}]])
+      }
+    }
+
+
+
+    ws.addEventListener('message', handleMessage)
+
+      // const data = await acquire_rooms_ls()
+      // setRooms([...data.rooms,...[{'name':'','protected': false, 'visible':false}]])
+
   }
 
   useEffect(()=>{
@@ -145,15 +180,16 @@ export default function LobbyPage() {
                 <th className={styles.colRoom}>Room name</th>
                 <th className={styles.colOwner}>Owner</th>
                 <th className={styles.colProtected}>Protected</th>
+                <th className={styles.colOccupancy}>Occupancy</th>
                 <th className={styles.colAction}>Action</th>
               </tr>
             </thead>
             <tbody>
               {filteredRooms.length === 0 ? (
                 <tr>
-                  <td className={styles.emptyState} colSpan={3}>
+                  <td className={styles.emptyState} colSpan={5}>
                   {/* {rooms?.length === 0 ? 'No rooms match your search.' : 'loading in'} */}
-                  {fetching_rooms ? 'Loading in' : 'No rooms match your search.'}
+                  {conn_established ? 'No rooms match your search.' : 'Establishing connection...'}
                   </td>
                 </tr>
               ) : (
@@ -170,6 +206,7 @@ export default function LobbyPage() {
                         {room.protected ? "Private" : "Public"}
                       </span>
                     </td>
+                    <td className={styles.colOccupancy}>{room.occupancy}</td>
                     <td className={styles.colAction}>
                       <button className={styles.joinButton} type="button" onClick={()=>redirect_to_room(room.room_id)}>
                         Join

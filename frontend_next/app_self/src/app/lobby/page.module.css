@@ -105,11 +105,12 @@
 }
 
 .colRoom {
-  width: 60%;
+  width: 40%;
 }
 
 .colProtected,
 .colOwner,
+.colOccupancy,
 .colAction {
   width: 15%;
 }
@@ -119,6 +120,10 @@
 }
 
 .colOwner {
+  text-align: center;
+}
+
+.colOccupancy {
   text-align: center;
 }
 
@@ -154,8 +159,9 @@
 
   .colProtected,
   .colOwner,
+  .colOccupancy,
   .colAction {
-    width: 20%;
+    width: 15%;
   }
 
   .roomName {

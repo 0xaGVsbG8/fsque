@@ -10,6 +10,9 @@ from db_conn import get_db
 from views.models import room_info
 from sqlalchemy.orm import Session
 import time
+# from .link import link_broadcast_rooms
+from .ws_utils import ROOM_CONNECTIONS, count_occupancy
+from .rooms_lobby import broadcast_rooms
 
 router = APIRouter()
 
@@ -34,7 +37,6 @@ def validate_token_access(ROOM_ID: str, USER_ID: str):
         db.close()
         
         
-ROOM_CONNECTIONS = {}
 
 
 #room_id: [{username: 2, user_id:2,payload:xd}]
@@ -93,10 +95,7 @@ def remove_connection(room_id:str,user_id: WebSocket):
         #     del ROOM_CONNECTIONS[room_id]
         
 
-def count_occupancy(room_id):
-    if room_id in ROOM_CONNECTIONS:
-        return len(ROOM_CONNECTIONS[room_id])
-    return 0
+
             
 async def broadcast_occupancy(room_id):
     if room_id in ROOM_CONNECTIONS:
@@ -202,6 +201,9 @@ async def websocket_endpoint(ws: WebSocket):
             store_connection(ROOM_ID,USER_ID, ws)
             register_user_in_room(ROOM_ID,USERNAME, USER_ID, temp_user_id)
             
+            await broadcast_rooms()
+            
+            
             await ws.send_json({'temp_user_id': temp_user_id})
             await broadcast_occupancy(ROOM_ID)
             await broadcast_payloads(ROOM_ID, USER_ID)
@@ -260,9 +262,12 @@ async def websocket_endpoint(ws: WebSocket):
                 remove_connection(ROOM_ID, USER_ID)
                 unregister_user_in_room(ROOM_ID, USER_ID)
                 
+                await broadcast_rooms()
+                
+                
                 await broadcast_occupancy(ROOM_ID)
                 await broadcast_payloads(ROOM_ID, USER_ID)
                 
                 print('user disconnected')
             
-    await ws.close()
+    # await ws.close()

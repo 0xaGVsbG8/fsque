@@ -11,6 +11,7 @@ from typing import Literal, Optional
 import uuid
 from .verify_room import STASHED_ROOMS
 from views.models import room_info
+from views.WSs.rooms_lobby import broadcast_rooms
 
 router = APIRouter()
 
@@ -48,6 +49,7 @@ async def view(request: Request, userdata: make_room_props, db: Session = Depend
     # db_conn.add_room(userdata.name,userdata.passwd,userdata.privacy,userdata.visible, userdata.owner, room_token)
     STASHED_ROOMS[room_token] = []
     # db_conn.create_default_record_in_stashed_rooms(room_token)
+    await broadcast_rooms()
     return {'room_token': room_token}
     # db_conn.add_room(**userdata.dict())
     

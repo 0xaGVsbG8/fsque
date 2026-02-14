@@ -15,8 +15,9 @@ export type RoomDataProps = {
     ALLOW_USER: boolean
 }
 
-export type ModifiedFile = File & {
-    id: string
+export type ModifiedFile = {
+    file_id: string
+    file: File
 }
 
 
@@ -47,7 +48,7 @@ const View = () => {
     const ws_ref = useRef<WebSocket | null>(null)
     const just_files_names = useRef<payload_props[]>([])
 
-    const fileLsRefForTransfer = useRef<File[]|null>(null)
+    const fileLsRefForTransfer = useRef<ModifiedFile[]|null>(null)
 
     const params = useParams()
 
@@ -94,14 +95,16 @@ const View = () => {
             const picker = window.showOpenFilePicker as (opts?: { multiple?: boolean }) => Promise<any[]>
             const newHandles = await picker({ multiple: true })
 
-            const files = await Promise.all(newHandles.map(h => h.getFile()))
+            // const files = await Promise.all(newHandles.map(h => h.getFile()))
 
-            const filesWithId = (
+            const files = (
                 await Promise.all(newHandles.map(h => h.getFile()))
             ).map(file => ({
-                file_id: crypto.randomUUID(),
+                'file_id': crypto.randomUUID(),
                 'file':file as File
             }))
+
+            
             // const files = (
             //     await Promise.all(newHandles.map(h => h.getFile()))
             // ).map(file => ({
@@ -116,9 +119,11 @@ const View = () => {
 
             
 
-            console.log(filesWithId,'xx?')
+            
+
+            // console.log(filesWithId,'xx?')
             // just_files_names.current = [...just_files_names.current, ...files.map((item)=>{console.log(item.name); return item.name})]
-            just_files_names.current = [...just_files_names.current, ...files.map((item)=>{console.log(item.name); return {'filename': item.name,'filesize': formatFileSize(item.size), 'real_filesize': item.size, 'file_id': String(crypto.randomUUID())}})]
+            just_files_names.current = [...just_files_names.current, ...files.map((item)=>{console.log(item.file.name); return {'filename': item.file.name,'filesize': formatFileSize(item.file.size), 'real_filesize': item.file.size, 'file_id': item.file_id}})]
             // just_files_names.current =files.map((item)=>{console.log(item.name); return {'filename': item.name, 'filesize': item.size}})
 
             if(ws_ref.current){
@@ -128,7 +133,7 @@ const View = () => {
                 }))
             }
 
-            console.log('Wybrane pliki:', just_files_names.current)
+            // console.log('Wybrane pliki:', just_files_names.current)
 
             // setHandles(prev => [...prev, ...newHandles])
         } catch (e) {
@@ -139,22 +144,26 @@ const View = () => {
 
     const drop_file_from_pool = (file_no: number, filename: string, filesize: number, file_id: string) => {
 
-        console.log('droping -> ',file_no)
+        console.log('droping -> ',file_id)
 
         console.log(just_files_names.current)
 
-        just_files_names.current = just_files_names.current.filter((item)=>{return item.file_id!=file_id})
+        just_files_names.current = just_files_names.current.filter((item)=>item.file_id != file_id)
+        setFileLs(prev => prev.filter((item)=>item.file_id != file_id))
+        // console.log(just_files_names.current)
 
-        console.log(just_files_names.current)
+        // just_files_names.current = just_files_names.current.filter((item)=>{return item.file_id!=file_id})
 
-        // just_files_names.current = just_files_names.current.filter(
-        //     (item, index) => index !== file_no && item.filename != filename && item.real_filesize != filesize
-        // )
+        // console.log(just_files_names.current)
+
+        // // just_files_names.current = just_files_names.current.filter(
+        // //     (item, index) => index !== file_no && item.filename != filename && item.real_filesize != filesize
+        // // )
 
         if(ws_ref.current){
             console.log('updating payload')
             ws_ref.current.send(JSON.stringify({
-                'users_payload': [just_files_names.current.length == 0 ? ['_'] : just_files_names.current]
+                'users_payload': just_files_names.current.length == 0 ? ['_'] : just_files_names.current
             }))
         }
 
@@ -172,7 +181,7 @@ const View = () => {
 
 
     
-    const DownloadSingleFile = async (filename: string, user_id:string) => {
+    const DownloadSingleFile = async (filename: string, user_id:string, file_id: string) => {
         if (!('showSaveFilePicker' in window)) return
         if(!ws_ref.current) return
     
@@ -258,7 +267,7 @@ const View = () => {
 
             ws_ref.current.addEventListener("message", handle_transfer)
 
-            ws_ref.current.send(JSON.stringify({'user_single_file_transfer_request': {'filename':filename,'file_owner_id':user_id}}))
+            ws_ref.current.send(JSON.stringify({'user_single_file_transfer_request': {'filename':filename,'file_owner_id':user_id, 'file_id': file_id}}))
 
             // await writable.close()
     
@@ -353,9 +362,9 @@ return (
 
                                                 {/* {user.user_id==} */}
 
-                                                {user.identity == 'stranger' ? 
+                                                {false ? 
                                                     (
-                                                        <button onClick={()=>DownloadSingleFile(item.filename, user.user_id)} style={{ padding: '5px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', backgroundColor: '#eee', border: '1px solid #ccc', borderRadius: '4px' }}>
+                                                        <button onClick={()=>DownloadSingleFile(item.filename, user.user_id, item.file_id)} style={{ padding: '5px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', backgroundColor: '#eee', border: '1px solid #ccc', borderRadius: '4px' }}>
                                                             <span style={{ fontWeight: 'bold' }}>Down</span>
                                                         </button>
                                                     )
@@ -378,12 +387,12 @@ return (
 
             <button onClick={pickFile}>Pick Files</button>
             <button onClick={eraseFirstFileFromDisk}>Delete First File</button>
-
+{/* 
             <div>
                 {fileLs.map((file, index) => (
                     <div key={index}>{file.name}</div>
                 ))}
-            </div>
+            </div> */}
         </>
     )
 }

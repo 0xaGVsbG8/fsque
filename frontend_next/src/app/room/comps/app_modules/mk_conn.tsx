@@ -2,13 +2,14 @@ import { base_ws } from "@/app/app_conf"
 import { cookie_finder } from "@/app/modules/cookie_manager"
 import { user_ws_conn_info } from "@/app/types"
 import { connect } from "http2"
+import { ModifiedFile } from "../../[room_id]/page"
 
 export type launch_props = {
     ws_ref: React.MutableRefObject<WebSocket | null>
     set_conns_counter: React.Dispatch<React.SetStateAction<number | null>>
     set_ongoing_transfer_count: React.Dispatch<React.SetStateAction<number>>
     set_users_ws_conn_info: React.Dispatch<React.SetStateAction<user_ws_conn_info[] | null>> 
-    fileLsRefForTransfer: React.MutableRefObject<File[]|null>
+    fileLsRefForTransfer: React.MutableRefObject<ModifiedFile[]|null>
 }
 
 let connected: boolean = false
@@ -114,8 +115,10 @@ const launch = ({ws_ref, set_conns_counter, set_ongoing_transfer_count, set_user
 
                 if(!fileLsRefForTransfer.current) return
 
-                const target_file = fileLsRefForTransfer.current.filter((item)=>item.name==data.target)
-                console.log(target_file, 'd?')
+                const target_file = fileLsRefForTransfer.current.filter((item)=>item.file_id==data.target)
+                // console.log(target_file, 'd?')
+
+                console.log(target_file, '???')
 
                 const TRANSFER_ACCESS_TOKEN = data.TRANSFER_ACCESS_TOKEN
                 console.log("Transfer accepted (HOST):", TRANSFER_ACCESS_TOKEN)
@@ -143,7 +146,7 @@ const launch = ({ws_ref, set_conns_counter, set_ongoing_transfer_count, set_user
                         const here_data = JSON.parse(msg.data)
                         if(here_data.begin_upload){
                             console.log('beggining upload, sending chunks...')
-                            await sendFileInChunks(target_file[0], transfer_ws)
+                            await sendFileInChunks(target_file[0].file, transfer_ws)
                             transfer_ws.send(JSON.stringify({'transfer_complete':true}))
                             console.log('transfer complete')
                             transfer_ws.close()

@@ -202,6 +202,9 @@ async def websocket_endpoint(ws: WebSocket):
                         if data.get('user_single_file_transfer_request'):
                             userdata = data['user_single_file_transfer_request']
                             userdata:dict
+                            # print('\n\n\n',userdata, 'incoming userdata')
+                            # import asyncio
+                            # await asyncio.sleep(30)
                             if ROOM_CONNECTIONS.get(ROOM_ID):
                                 if ROOM_CONNECTIONS[ROOM_ID].get(userdata['file_owner_id']) and userdata.get('file_owner_id') :
                                     
@@ -211,13 +214,16 @@ async def websocket_endpoint(ws: WebSocket):
                                     print('HOST located! -->' , HOST)
                                     TRANSFER_ACCESS_TOKEN = str(uuid.uuid4())
                                     
+                                    TARGET = userdata['file_id']
+                                    
                                     SINGLE_FILE_TRANSFER_ROOMS[TRANSFER_ACCESS_TOKEN] = {
-                                        'target': userdata['filename'],
+                                        # 'target': userdata['filename'],
+                                        'target': TARGET,
                                         'HOST': userdata['file_owner_id'],
                                         'client': USER_ID
                                     }
                                     
-                                    await HOST.send_json({'incoming_transfer': 'user wants to download your files!','role': 'HOST', 'TRANSFER_ACCESS_TOKEN': TRANSFER_ACCESS_TOKEN, 'target': userdata['filename']})
+                                    await HOST.send_json({'incoming_transfer': 'user wants to download your files!','role': 'HOST', 'TRANSFER_ACCESS_TOKEN': TRANSFER_ACCESS_TOKEN, 'target': TARGET})
                                     await ws.send_json({'incoming_transfer': 'HOST located', 'role':'client', 'TRANSFER_ACCESS_TOKEN': TRANSFER_ACCESS_TOKEN})
                                     
                                     # print(SINGLE_FILE_TRANSFER_ROOMS, 'yopyo')

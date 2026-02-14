@@ -17,4 +17,17 @@ export type user_ws_conn_info = {
 }
 
 
+export type RoomEntry = {
+    name: string;
+    protected: boolean;
+    visible: boolean;
+    password?: string;
+    room_id: string,
+    owner:string,
+    redirectImmediately?: boolean;
+    occupancy: number
+
+  };
+
+
 // export {transfer_downloading, transfer_uploading}

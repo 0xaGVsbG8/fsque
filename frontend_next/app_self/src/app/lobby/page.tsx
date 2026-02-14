@@ -9,16 +9,9 @@ import styles from "./page.module.css";
 import "./style.css";
 import { acquire_rooms_ls } from "../modules/acquire_rooms_ls";
 import get_username from "../modules/get_username";
+import { RoomEntry } from "../types";
 
-type RoomEntry = {
-  name: string;
-  protected: boolean;
-  visible: boolean;
-  password?: string;
-  room_id: string,
-  owner:string,
-  redirectImmediately?: boolean;
-};
+
 
 
 // NOT IN USE ANYMORe
@@ -100,6 +93,7 @@ export default function LobbyPage() {
           room_id: "",
           owner: get_username(),
           redirectImmediately: payload.redirectImmediately,
+          occupancy: 0
         },
       ];
     });

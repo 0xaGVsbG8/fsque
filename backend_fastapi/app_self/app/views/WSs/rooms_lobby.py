@@ -57,5 +57,5 @@ async def websocket_endpoint(ws: WebSocket):
                 # await asyncio.sleep(3600)
             except WebSocketDisconnect:
                 # print('user disconnected')
-                LOBBY_CONNS.remove(ws)
+                LOBBY_CONNS.remove(ws) if ws in LOBBY_CONNS else None
                 return

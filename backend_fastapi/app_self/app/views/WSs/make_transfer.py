@@ -105,58 +105,62 @@ async def websocket_endpoint(ws: WebSocket):
                     chunk_counter = 0
                     LAST_TOUCH = time.time()
                     while True:
-                        if SINGLE_FILE_TRANSFER_ROOMS[TRANSFER_ACCESS_TOKEN].get('client_ready'):
-                            
-                            if time.time() - LAST_TOUCH >= ROOM_TOUCH_INTERVAL:
-                                # print('touching room')
-                                TouchRoom(ROOM_ID)
-                                LAST_TOUCH = time.time()
+                        try:
+                            if SINGLE_FILE_TRANSFER_ROOMS[TRANSFER_ACCESS_TOKEN].get('client_ready'):
                                 
-                            # print('host received clients presence')
-                            await ws.send_json({'begin_upload':True}) if not HOST_NOTIFIED else None
-                            HOST_NOTIFIED = True
-                            
-                            ROOM_DATA['received_chunk'] = False
-                            
-                            msg =  await ws.receive()
-                            
-                            if 'text' in msg:
-                                msg = json.loads(msg['text'])
-                                if msg.get('transfer_complete'):
-                                    print('transfer complete!')
-                                    await CLIENT_WS.send_json({'transfer_complete':True})
-                                    print('client notified')
-                                    await HOST_WS.close()
-                                    await CLIENT_WS.close()
-                                    erase_conn_room(TRANSFER_ACCESS_TOKEN)
-                                    return
-                                  
+                                if time.time() - LAST_TOUCH >= ROOM_TOUCH_INTERVAL:
+                                    # print('touching room')
+                                    TouchRoom(ROOM_ID)
+                                    LAST_TOUCH = time.time()
+                                    
+                                # print('host received clients presence')
+                                await ws.send_json({'begin_upload':True}) if not HOST_NOTIFIED else None
+                                HOST_NOTIFIED = True
                                 
-                            if 'bytes' in msg:
-                                chunk = msg['bytes']
-                                # print('received chunk')
-                                await CLIENT_WS.send_bytes(chunk)
-                                # print('chunk sent')
-                                client_response = await CLIENT_WS.receive_json()
-                                if client_response.get('received_chunk'):
-                                    # print('client received a chunk!')
-                                    await HOST_WS.send_json({'chunk_received':True})
+                                ROOM_DATA['received_chunk'] = False
                                 
-                            # chunks =
-                            # while True:
-                            #     print('xd?')
-                            #     if ROOM_DATA['received_chunk'] == True:
-                            #         print('host is sending a next chunk')
-                            #         break
+                                msg =  await ws.receive()
                                 
-                                # await asyncio.sleep(0.05)
-                            
-                            # await asyncio.sleep(1)
-                  
-                            
-                            
-                        else:
-                            await asyncio.sleep(1)
+                                if 'text' in msg:
+                                    msg = json.loads(msg['text'])
+                                    if msg.get('transfer_complete'):
+                                        print('transfer complete!')
+                                        await CLIENT_WS.send_json({'transfer_complete':True})
+                                        print('client notified')
+                                        await HOST_WS.close()
+                                        await CLIENT_WS.close()
+                                        erase_conn_room(TRANSFER_ACCESS_TOKEN)
+                                        return
+                                    
+                                    
+                                if 'bytes' in msg:
+                                    chunk = msg['bytes']
+                                    # print('received chunk')
+                                    await CLIENT_WS.send_bytes(chunk)
+                                    # print('chunk sent')
+                                    client_response = await CLIENT_WS.receive_json()
+                                    if client_response.get('received_chunk'):
+                                        # print('client received a chunk!')
+                                        await HOST_WS.send_json({'chunk_received':True})
+                                    
+                                # chunks =
+                                # while True:
+                                #     print('xd?')
+                                #     if ROOM_DATA['received_chunk'] == True:
+                                #         print('host is sending a next chunk')
+                                #         break
+                                    
+                                    # await asyncio.sleep(0.05)
+                                
+                                # await asyncio.sleep(1)
+                    
+                                
+                                
+                            else:
+                                await asyncio.sleep(1) 
+                                
+                        except Exception as e:
+                            break
                         
                 # await ws.send_json({'xxxxxxxd':3})
                 

@@ -24,16 +24,28 @@ export type ModifiedFile = {
 
 let opened_single_file_transfer: boolean = false
 
-const does_room_exists = async (room_id: string): Promise<RoomDataProps> => {
-    const response = await fetch(base_fetch + '/does_room_exists' + `/?received_room_id=${room_id}`, { credentials: 'include' })
-    const data = await response.json() as RoomDataProps
-    // console.log(data, 'xd?', room_id)
-    if (!data || data.room_found === false) {
-        window.open('/lobby', '_self')
+
+const sleep = (ms: number) => new Promise(resolve => setTimeout(()=>{window.location.reload();resolve}, ms))
+
+
+const does_room_exists = async (room_id: string): Promise<RoomDataProps | null> => {
+    try{
+        const response = await fetch(base_fetch + '/does_room_exists' + `/?received_room_id=${room_id}`, { credentials: 'include' })
+        const data = await response.json() as RoomDataProps
+        // console.log(data, 'xd?', room_id)
+        if (!data || data.room_found === false) {
+            window.open('/lobby', '_self')
+        }
+        // if(data.USER_ACCESS_TOKEN){set_cookie('USER_ACCESS_TOKEN', data.USER_ACCESS_TOKEN)}
+        set_cookie('ROOM_ID', room_id)
+        return data
+    }catch(err){
+        console.log('backend irresponding')
+        await sleep(3000)
+
     }
-    // if(data.USER_ACCESS_TOKEN){set_cookie('USER_ACCESS_TOKEN', data.USER_ACCESS_TOKEN)}
-    set_cookie('ROOM_ID', room_id)
-    return data
+    return null
+
 }
 
 const View = () => {
@@ -60,6 +72,7 @@ const View = () => {
     useEffect(() => {
         const loadRoom = async () => {
             const data = await does_room_exists(String(params.room_id))
+            if(!data) return
             setRoomData(data)
             if(data.ALLOW_USER) {
                 console.log('launching',data)

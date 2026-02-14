@@ -26,7 +26,8 @@ export function formatFileSize(bytes: number): string {
 }
 
 // const CHUNK_SIZE = 64 * 1024 // 64KB chunks
-const CHUNK_SIZE = 5120 * 1024 // 64KB chunks #5MBs
+// const CHUNK_SIZE = 5120 * 1024 // 64KB chunks #5MBs
+const CHUNK_SIZE = 10 * 1024  * 1024 // 64KB chunks #5MBs
 
 
 function waitForAck(ws: WebSocket): Promise<void> {
@@ -38,7 +39,7 @@ function waitForAck(ws: WebSocket): Promise<void> {
                 const data = JSON.parse(event.data)
 
                 if (data.chunk_received) {
-                    console.log('client received a chunk')
+                    // console.log('client received a chunk')
                     ws.removeEventListener("message", handler)
                     resolve()
                 }
@@ -53,16 +54,19 @@ function waitForAck(ws: WebSocket): Promise<void> {
 
 async function sendFileInChunks(file: File, ws: WebSocket) {
     let offset = 0
+    let percent = 0
     while (offset < file.size) {
 
         const slice = file.slice(offset, offset + CHUNK_SIZE)
         const buffer = await slice.arrayBuffer()
 
-        console.log('sending chunk')
+        // console.log('sending chunk')
         ws.send(buffer)
         await waitForAck(ws)
 
         offset += CHUNK_SIZE
+        percent = Math.min(Math.round((offset / file.size) * 100), 100)
+        console.log('upload progress:', percent)
     }
     // Send an empty message to signal end of file
     // ws.send(JSON.stringify({ transfer_complete: true }))
@@ -157,7 +161,7 @@ const launch = ({ws_ref, set_conns_counter, set_ongoing_transfer_count, set_user
                 transfer_ws.onmessage = async(msg) => {
                     // console.log(msg)
                     try{
-                        console.log(target_file)
+                        // console.log(target_file)
                         const here_data = JSON.parse(msg.data)
                         if(here_data.begin_upload){
                             console.log('beggining upload, sending chunks...')

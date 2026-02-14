@@ -38,13 +38,13 @@ ROOM_CONNECTIONS = {}
 USERS_PAYLOAD = {}
 
 
-def register_user_in_room(room_id:str, USERNAME: str, USER_ID:str):
+def register_user_in_room(room_id:str, USERNAME: str, USER_ID:str, temp_user_id: str):
     
     
     if not USERS_PAYLOAD.get('room_'+room_id):
-        USERS_PAYLOAD['room_'+room_id] = {'user_'+USER_ID:{'username':USERNAME,'payload':[]}}
+        USERS_PAYLOAD['room_'+room_id] = {'user_'+USER_ID:{'username':USERNAME,'payload':[],'temp_user_id':temp_user_id}}
     else:
-        USERS_PAYLOAD['room_'+room_id]['user_'+USER_ID]={'username':USERNAME,'payload':[]}
+        USERS_PAYLOAD['room_'+room_id]['user_'+USER_ID]={'username':USERNAME,'payload':[],'temp_user_id':temp_user_id}
         # ROOM_CONNECTIONS[room_id].append(ws)
         ...
     
@@ -120,6 +120,9 @@ async def broadcast_payloads(room_id, user_id):
                     'username': USERNAME,
                     'user_id': USER_ID,
                     'payload': PAYLOAD,
+                    'temp_identity':values.get('temp_user_id')
+                    
+                    
                     # 
                 }
                 
@@ -135,7 +138,6 @@ async def broadcast_payloads(room_id, user_id):
                 try:
                     await ws.send_json({
                         'users_ws_conn_info': user_ws_conn_info,
-                        'identity': 'me' if USER_ID == user_id else 'stranger'
                     })    
                 except Exception as e:
                     print('Connection already')
@@ -179,13 +181,20 @@ async def websocket_endpoint(ws: WebSocket):
     USERNAME = ws.cookies.get("username")
     
     if USER_ACCESS_TOKEN and ROOM_ID and USER_ID and USERNAME:
+        #Protecting original USER ID
+        USER_ID = str(uuid.uuid4())
+        
         print(f"Connecting to room: {ROOM_ID} ")
         if validate_token_access(ROOM_ID, USER_ID):
             await ws.accept()
+            temp_user_id = str(uuid.uuid4())
             store_connection(ROOM_ID,USER_ID, ws)
-            register_user_in_room(ROOM_ID,USERNAME, USER_ID)
+            register_user_in_room(ROOM_ID,USERNAME, USER_ID, temp_user_id)
+            
+            await ws.send_json({'temp_user_id': temp_user_id})
             await broadcast_occupancy(ROOM_ID)
             await broadcast_payloads(ROOM_ID, USER_ID)
+            
             
             try:
                 while True:

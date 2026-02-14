@@ -42,6 +42,8 @@ const View = () => {
 
     const [ongoing_transfer_count, set_ongoing_transfer_count] = useState<number>(0)
 
+    const [MyTempId, setMyTempId] = useState<string>('')
+
     const [conns_counter, set_conns_counter] = useState<number | null>(null)
     const [users_ws_conn_info, set_users_ws_conn_info] = useState<user_ws_conn_info[] | null>(null)
     const [expandedUsers, setExpandedUsers] = useState<Record<string, boolean>>({})
@@ -306,7 +308,7 @@ const View = () => {
         setTimeout(() => {
             // console.log(cookie_finder('user_id'))
             console.log('launching')
-            launch({ws_ref, set_conns_counter, set_users_ws_conn_info,set_ongoing_transfer_count, fileLsRefForTransfer})
+            launch({ws_ref, set_conns_counter, set_users_ws_conn_info,set_ongoing_transfer_count, setMyTempId,fileLsRefForTransfer})
         }, 1000);
         },[])
 return (
@@ -317,7 +319,7 @@ return (
 
             <>Connected users: {conns_counter}</>
             <> Ongoing transfers: {ongoing_transfer_count}</>
-
+            {/* {MyTempId} */}
             
 
             <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '15px', color: '#333' }}>
@@ -325,7 +327,7 @@ return (
                     <div key={user.user_id + uIndex} style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '15px', backgroundColor: '#fff' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', borderBottom: '1px solid #eee', paddingBottom: '5px' }}>
                             <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#000' }}>
-                                {user.username + (user.identity == 'me' ? ' (Me)' : '')}
+                                {user.username + (user.temp_identity == MyTempId ? ' (Me)' : '')}
                             </div>
                             {user.payload && user.payload.some(p => typeof p === 'object' && p.filename) && (
                                 <button
@@ -362,7 +364,7 @@ return (
 
                                                 {/* {user.user_id==} */}
 
-                                                {false ? 
+                                                {user.temp_identity != MyTempId ? 
                                                     (
                                                         <button onClick={()=>DownloadSingleFile(item.filename, user.user_id, item.file_id)} style={{ padding: '5px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', backgroundColor: '#eee', border: '1px solid #ccc', borderRadius: '4px' }}>
                                                             <span style={{ fontWeight: 'bold' }}>Down</span>
@@ -372,7 +374,7 @@ return (
                                                     <button onClick={()=>drop_file_from_pool(pIndex, item.filename, item.real_filesize, item.file_id)}>
                                                         <span style={{ fontWeight: 'bold' }}>Drop</span>
                                                     </button>
-                                            }
+                                                }
                                                 
 
                                             </div>

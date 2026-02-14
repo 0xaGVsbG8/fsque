@@ -9,11 +9,14 @@ export type launch_props = {
     set_conns_counter: React.Dispatch<React.SetStateAction<number | null>>
     set_ongoing_transfer_count: React.Dispatch<React.SetStateAction<number>>
     set_users_ws_conn_info: React.Dispatch<React.SetStateAction<user_ws_conn_info[] | null>> 
+    setMyTempId: React.Dispatch<React.SetStateAction<string>>
     fileLsRefForTransfer: React.MutableRefObject<ModifiedFile[]|null>
 }
 
 let connected: boolean = false
 let opened_single_file_transfer = false
+const reload_on_conn_fail: boolean = true
+
 
 export function formatFileSize(bytes: number): string {
     if (bytes < 1024) return bytes + ' B'
@@ -65,7 +68,7 @@ async function sendFileInChunks(file: File, ws: WebSocket) {
     // ws.send(JSON.stringify({ transfer_complete: true }))
 }
 
-const launch = ({ws_ref, set_conns_counter, set_ongoing_transfer_count, set_users_ws_conn_info, fileLsRefForTransfer}:launch_props) => {
+const launch = ({ws_ref, set_conns_counter, set_ongoing_transfer_count, set_users_ws_conn_info,setMyTempId, fileLsRefForTransfer}:launch_props) => {
 
     const USER_ACCESS_TOKEN = cookie_finder('USER_ACCESS_TOKEN')
     const ROOM_ID = cookie_finder('ROOM_ID')
@@ -96,16 +99,28 @@ const launch = ({ws_ref, set_conns_counter, set_ongoing_transfer_count, set_user
         // }
     }
 
+    ws.onclose = () => {
+        console.log('Parent ws conn lost or is irresponding!')
+        // document.write('Parent ws conn lost or is irresponding!')
+        reload_on_conn_fail &&  setTimeout(() => {
+            window.location.reload()
+        }, 3000);
+    }
+
     ws.onmessage = (msg) => {
         const data = JSON.parse(msg.data)
+        console.log(data)
         if(data){
-            console.log('xd',data)
             if(data.connected_users){
                 set_conns_counter(data.connected_users)
             }
             if(data.users_ws_conn_info){
                 console.log(data.users_ws_conn_info, '????')
                 set_users_ws_conn_info(data.users_ws_conn_info as user_ws_conn_info[])
+            }
+            if(data.temp_user_id){
+                setMyTempId(data.temp_user_id)
+                // temp_muser_id
             }
 
 

@@ -13,7 +13,7 @@ export type user_ws_conn_info = {
     username: string,
     user_id: string,
     payload: payload_props[]
-    identity: 'me' | 'stranger'
+    temp_identity: string
 }
 
 

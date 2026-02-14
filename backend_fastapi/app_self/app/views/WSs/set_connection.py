@@ -94,10 +94,12 @@ async def broadcast_occupancy(room_id):
     if room_id in ROOM_CONNECTIONS:
         for key, ws in ROOM_CONNECTIONS[room_id].items():
             ws: WebSocket
-            await ws.send_json({'connected_users':len(ROOM_CONNECTIONS[room_id])})
-            
+            try:
+                await ws.send_json({'connected_users':len(ROOM_CONNECTIONS[room_id])})
+            except Exception as e:
+                print('connection already closed!')
 
-async def broadcast_payloads(room_id):
+async def broadcast_payloads(room_id, user_id):
     
     print('spreading updated payloads')
     
@@ -117,7 +119,8 @@ async def broadcast_payloads(room_id):
                 data = {
                     'username': USERNAME,
                     'user_id': USER_ID,
-                    'payload': PAYLOAD
+                    'payload': PAYLOAD,
+                    # 
                 }
                 
                 user_ws_conn_info.append(data)
@@ -129,10 +132,14 @@ async def broadcast_payloads(room_id):
                 
             for key, ws in ROOM_CONNECTIONS[room_id].items():
                 ws: WebSocket    
-                await ws.send_json({
-                    'users_ws_conn_info': user_ws_conn_info
-                })    
-                
+                try:
+                    await ws.send_json({
+                        'users_ws_conn_info': user_ws_conn_info,
+                        'identity': 'me' if USER_ID == user_id else 'stranger'
+                    })    
+                except Exception as e:
+                    print('Connection already')
+                    
                          
 
 def update_users_payload(room_id, user_id, payload):
@@ -178,7 +185,7 @@ async def websocket_endpoint(ws: WebSocket):
             store_connection(ROOM_ID,USER_ID, ws)
             register_user_in_room(ROOM_ID,USERNAME, USER_ID)
             await broadcast_occupancy(ROOM_ID)
-            await broadcast_payloads(ROOM_ID)
+            await broadcast_payloads(ROOM_ID, USER_ID)
             
             try:
                 while True:
@@ -189,7 +196,8 @@ async def websocket_endpoint(ws: WebSocket):
                         if data.get('users_payload'):
                             print(f'received payload from user: {USERNAME} --- AND with an id of: {USER_ID}')
                             if update_users_payload(ROOM_ID, USER_ID, data.get('users_payload')):
-                                await broadcast_payloads(ROOM_ID)
+                                await broadcast_payloads(ROOM_ID, USER_ID)
+
                                 
                         if data.get('user_single_file_transfer_request'):
                             userdata = data['user_single_file_transfer_request']
@@ -226,7 +234,7 @@ async def websocket_endpoint(ws: WebSocket):
                 unregister_user_in_room(ROOM_ID, USER_ID)
                 
                 await broadcast_occupancy(ROOM_ID)
-                await broadcast_payloads(ROOM_ID)
+                await broadcast_payloads(ROOM_ID, USER_ID)
                 
                 print('user disconnected')
             

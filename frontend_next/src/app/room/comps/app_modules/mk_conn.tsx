@@ -6,6 +6,7 @@ import { connect } from "http2"
 export type launch_props = {
     ws_ref: React.MutableRefObject<WebSocket | null>
     set_conns_counter: React.Dispatch<React.SetStateAction<number | null>>
+    set_ongoing_transfer_count: React.Dispatch<React.SetStateAction<number>>
     set_users_ws_conn_info: React.Dispatch<React.SetStateAction<user_ws_conn_info[] | null>> 
     fileLsRefForTransfer: React.MutableRefObject<File[]|null>
 }
@@ -13,14 +14,22 @@ export type launch_props = {
 let connected: boolean = false
 let opened_single_file_transfer = false
 
-const CHUNK_SIZE = 64 * 1024 // 64KB chunks
+export function formatFileSize(bytes: number): string {
+    if (bytes < 1024) return bytes + ' B'
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB'
+    if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(2) + ' MB'
+    return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB'
+}
+
+// const CHUNK_SIZE = 64 * 1024 // 64KB chunks
+const CHUNK_SIZE = 5120 * 1024 // 64KB chunks #5MBs
 
 
 function waitForAck(ws: WebSocket): Promise<void> {
     return new Promise((resolve) => {
 
         const handler = (event: MessageEvent) => {
-            console.log(event, 'handler?')
+            // console.log(event, 'handler?')
             if (typeof event.data === "string") {
                 const data = JSON.parse(event.data)
 
@@ -45,6 +54,7 @@ async function sendFileInChunks(file: File, ws: WebSocket) {
         const slice = file.slice(offset, offset + CHUNK_SIZE)
         const buffer = await slice.arrayBuffer()
 
+        console.log('sending chunk')
         ws.send(buffer)
         await waitForAck(ws)
 
@@ -54,7 +64,7 @@ async function sendFileInChunks(file: File, ws: WebSocket) {
     // ws.send(JSON.stringify({ transfer_complete: true }))
 }
 
-const launch = ({ws_ref, set_conns_counter, set_users_ws_conn_info, fileLsRefForTransfer}:launch_props) => {
+const launch = ({ws_ref, set_conns_counter, set_ongoing_transfer_count, set_users_ws_conn_info, fileLsRefForTransfer}:launch_props) => {
 
     const USER_ACCESS_TOKEN = cookie_finder('USER_ACCESS_TOKEN')
     const ROOM_ID = cookie_finder('ROOM_ID')
@@ -78,6 +88,7 @@ const launch = ({ws_ref, set_conns_counter, set_users_ws_conn_info, fileLsRefFor
     if(!ws) return 
     ws.onopen = () => {
         console.log('connection established')
+        // set_ongoing_transfer_count((prev)=>{return prev+1})
         // const username = cookie_finder('username')
         // if(username){
         //     ws.send(JSON.stringify({'username':username}))
@@ -87,7 +98,7 @@ const launch = ({ws_ref, set_conns_counter, set_users_ws_conn_info, fileLsRefFor
     ws.onmessage = (msg) => {
         const data = JSON.parse(msg.data)
         if(data){
-            // console.log('xd',data)
+            console.log('xd',data)
             if(data.connected_users){
                 set_conns_counter(data.connected_users)
             }
@@ -112,23 +123,31 @@ const launch = ({ws_ref, set_conns_counter, set_users_ws_conn_info, fileLsRefFor
                 if(opened_single_file_transfer) return
                 opened_single_file_transfer = true
 
+                setTimeout(() => {
+                    opened_single_file_transfer = false
+                }, 10);
+
                 const transfer_ws = new WebSocket(base_ws + '/make-transfer' + `?TRANSFER_ACCESS_TOKEN=${TRANSFER_ACCESS_TOKEN}`)
 
                 //HOST SIDE
 
                 transfer_ws.onopen = () => {
+                    set_ongoing_transfer_count((prev)=>{return prev+1})
                     // transfer_ws.send(JSON.stringify({'transfer_ready':true, 'role': data.role}))
                 }
 
-                transfer_ws.onmessage = (msg) => {
-                    console.log(msg)
+                transfer_ws.onmessage = async(msg) => {
+                    // console.log(msg)
                     try{
                         console.log(target_file)
                         const here_data = JSON.parse(msg.data)
                         if(here_data.begin_upload){
                             console.log('beggining upload, sending chunks...')
-                            sendFileInChunks(target_file[0], transfer_ws)
+                            await sendFileInChunks(target_file[0], transfer_ws)
                             transfer_ws.send(JSON.stringify({'transfer_complete':true}))
+                            console.log('transfer complete')
+                            transfer_ws.close()
+                            set_ongoing_transfer_count((prev)=>{return prev-1})
                         }
                     }catch(err){}
          

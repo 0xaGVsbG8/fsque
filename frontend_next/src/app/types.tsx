@@ -4,13 +4,16 @@ export type transfer_downloading = boolean
 
 export type payload_props = {
     filename: string,
-    filesize: number
+    real_filesize: number
+    filesize: string
+    file_id: string
 }
 
 export type user_ws_conn_info = {
     username: string,
     user_id: string,
     payload: payload_props[]
+    identity: 'me' | 'stranger'
 }
 
 

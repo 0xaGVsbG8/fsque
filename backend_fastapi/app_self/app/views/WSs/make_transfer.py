@@ -9,10 +9,15 @@ from db_conn import get_db
 from views.models import room_info
 from sqlalchemy.orm import Session
 from .set_connection import SINGLE_FILE_TRANSFER_ROOMS
+import asyncio
 
 router = APIRouter()
+MAX_HANDSHAKE_ATTEMPTS = 10
 
-import asyncio
+def erase_conn_room(TRANSFER_ACCESS_TOKEN):
+    if SINGLE_FILE_TRANSFER_ROOMS.get(TRANSFER_ACCESS_TOKEN):
+        del SINGLE_FILE_TRANSFER_ROOMS[TRANSFER_ACCESS_TOKEN]
+
 
 @router.websocket("/make-transfer")
 async def websocket_endpoint(ws: WebSocket):
@@ -41,8 +46,19 @@ async def websocket_endpoint(ws: WebSocket):
                 # CLIENT_WS = SINGLE_FILE_TRANSFER_ROOMS[TRANSFER_ACCESS_TOKEN].get("CLIENT_WS")
                 # await CLIENT_WS.send_json({'xd':2})
                 # print('sent?')
+                
+                HANDSHAKE_ATTEMPTS = 0
+ 
                 while True:
                     try:
+                        
+                        if HANDSHAKE_ATTEMPTS >= MAX_HANDSHAKE_ATTEMPTS:
+                            print('Max handshake attempts has been reached, closing connection')
+                            # await CLIENT_WS.close()
+                            # await HOST_WS.close()
+                            await ws.close()
+                            erase_conn_room(TRANSFER_ACCESS_TOKEN)
+                            return
                         
                         CLIENT_WS = SINGLE_FILE_TRANSFER_ROOMS[TRANSFER_ACCESS_TOKEN].get("CLIENT_WS")
                         HOST_WS = SINGLE_FILE_TRANSFER_ROOMS[TRANSFER_ACCESS_TOKEN].get("HOST_WS")
@@ -50,6 +66,7 @@ async def websocket_endpoint(ws: WebSocket):
                         if CLIENT_WS is None or HOST_WS is None:
                             print('one of users didnt connect!')
                             await asyncio.sleep(1)
+                            HANDSHAKE_ATTEMPTS += 1
                         else:
                             print('Handshake confirmed')
                             break
@@ -78,6 +95,8 @@ async def websocket_endpoint(ws: WebSocket):
                         
                 if ROLE == 'HOST':
                     CLIENT_WS: WebSocket
+                    HOST_WS: WebSocket
+                    
                     HOST_NOTIFIED = False
                     
                     chunk_counter = 0
@@ -97,6 +116,10 @@ async def websocket_endpoint(ws: WebSocket):
                                     print('transfer complete!')
                                     await CLIENT_WS.send_json({'transfer_complete':True})
                                     print('client notified')
+                                    await HOST_WS.close()
+                                    await CLIENT_WS.close()
+                                    erase_conn_room(TRANSFER_ACCESS_TOKEN)
+                                    return
                                   
                                 
                             if 'bytes' in msg:

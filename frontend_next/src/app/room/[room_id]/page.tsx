@@ -4,15 +4,21 @@ import { useEffect, useState, useRef } from 'react'
 import { base_fetch, base_ws } from '@/app/app_conf'
 import { useParams } from 'next/navigation'
 import RoomProtectedPrompt from '../comps/room_protected_prompt'
-import launch from '../comps/app_modules/mk_conn'
+import launch, { formatFileSize } from '../comps/app_modules/mk_conn'
 import { cookie_finder,set_cookie } from '@/app/modules/cookie_manager'
 import { payload_props, user_ws_conn_info } from '@/app/types'
+import { v4 as uuidv4 } from 'uuid'
 
-type RoomDataProps = {
+export type RoomDataProps = {
     room_found: boolean
     ROOM_PROTECTED: boolean
     ALLOW_USER: boolean
 }
+
+export type ModifiedFile = File & {
+    id: string
+}
+
 
 let opened_single_file_transfer: boolean = false
 
@@ -30,8 +36,10 @@ const does_room_exists = async (room_id: string): Promise<RoomDataProps> => {
 
 const View = () => {
     const [roomData, setRoomData] = useState<RoomDataProps | null>(null)
-    const [fileLs, setFileLs] = useState<File[]>([])
+    const [fileLs, setFileLs] = useState<ModifiedFile[]>([])
     const [handles, setHandles] = useState<any[]>([]) // FileSystemFileHandle[]
+
+    const [ongoing_transfer_count, set_ongoing_transfer_count] = useState<number>(0)
 
     const [conns_counter, set_conns_counter] = useState<number | null>(null)
     const [users_ws_conn_info, set_users_ws_conn_info] = useState<user_ws_conn_info[] | null>(null)
@@ -87,12 +95,30 @@ const View = () => {
             const newHandles = await picker({ multiple: true })
 
             const files = await Promise.all(newHandles.map(h => h.getFile()))
+
+            const filesWithId = (
+                await Promise.all(newHandles.map(h => h.getFile()))
+            ).map(file => ({
+                file_id: crypto.randomUUID(),
+                'file':file as File
+            }))
+            // const files = (
+            //     await Promise.all(newHandles.map(h => h.getFile()))
+            // ).map(file => ({
+            //     ...file,
+            //     file_id: crypto.randomUUID()
+            // }))
+
+
+            // const filesWithId = files.map((item)=>{return [...item, item.index=2]})
             setFileLs(prev => [...prev, ...files])
             fileLsRefForTransfer.current = [...fileLsRefForTransfer.current ? fileLsRefForTransfer.current : [], ...files]
-         
 
+            
+
+            console.log(filesWithId,'xx?')
             // just_files_names.current = [...just_files_names.current, ...files.map((item)=>{console.log(item.name); return item.name})]
-            just_files_names.current = [...just_files_names.current, ...files.map((item)=>{console.log(item.name); return {'filename': item.name, 'filesize': item.size}})]
+            just_files_names.current = [...just_files_names.current, ...files.map((item)=>{console.log(item.name); return {'filename': item.name,'filesize': formatFileSize(item.size), 'real_filesize': item.size, 'file_id': String(crypto.randomUUID())}})]
             // just_files_names.current =files.map((item)=>{console.log(item.name); return {'filename': item.name, 'filesize': item.size}})
 
             if(ws_ref.current){
@@ -106,9 +132,45 @@ const View = () => {
 
             // setHandles(prev => [...prev, ...newHandles])
         } catch (e) {
-            console.log('User anulował wybór pliku')
+            console.log('User anulował wybór pliku',e)
         }
     }
+
+
+    const drop_file_from_pool = (file_no: number, filename: string, filesize: number, file_id: string) => {
+
+        console.log('droping -> ',file_no)
+
+        console.log(just_files_names.current)
+
+        just_files_names.current = just_files_names.current.filter((item)=>{return item.file_id!=file_id})
+
+        console.log(just_files_names.current)
+
+        // just_files_names.current = just_files_names.current.filter(
+        //     (item, index) => index !== file_no && item.filename != filename && item.real_filesize != filesize
+        // )
+
+        if(ws_ref.current){
+            console.log('updating payload')
+            ws_ref.current.send(JSON.stringify({
+                'users_payload': [just_files_names.current.length == 0 ? ['_'] : just_files_names.current]
+            }))
+        }
+
+        // setFileLs((prev)=>{
+        //     if(!prev) return []
+        //     prev.
+        // })
+
+        // console.log(just_files_names.current)
+
+    
+        // setFileLs(just_files_names.current)
+        // console.log(just_files_names.current)
+    }
+
+
     
     const DownloadSingleFile = async (filename: string, user_id:string) => {
         if (!('showSaveFilePicker' in window)) return
@@ -147,15 +209,16 @@ const View = () => {
                     
                     setTimeout(() => {
                         opened_single_file_transfer = false
-                    }, 150);
+                    }, 10);
 
                     local_ws.onopen = async() => {
                         console.log('transfer opened')
+                        set_ongoing_transfer_count((prev=>{return prev+1}))
                         local_ws.send(JSON.stringify({'ready_for_transfer':true, 'role': data.role}))
                     }
 
                     local_ws.onmessage = async(message) => {
-                        console.log(message)
+                        // console.log(message)
                         if (message.data instanceof Blob) {
                             console.log("chunk received")
                             local_ws.send(JSON.stringify({'received_chunk':true}))
@@ -168,7 +231,10 @@ const View = () => {
                                     console.log('transfer complete (CLIENT)')
                                     setTimeout(async() => {
                                         await writable.close()
-                                    }, 200);
+                                        local_ws.close()
+                                        set_ongoing_transfer_count((prev=>{return prev-1}))
+                                        if(ws_ref.current) ws_ref.current.removeEventListener("message", handle_transfer)
+                                    }, 100);
                                 }
                             }catch(err){}
                         }
@@ -229,8 +295,9 @@ const View = () => {
 
       useEffect(()=>{
         setTimeout(() => {
+            // console.log(cookie_finder('user_id'))
             console.log('launching')
-            launch({ws_ref, set_conns_counter, set_users_ws_conn_info, fileLsRefForTransfer})
+            launch({ws_ref, set_conns_counter, set_users_ws_conn_info,set_ongoing_transfer_count, fileLsRefForTransfer})
         }, 1000);
         },[])
 return (
@@ -240,13 +307,16 @@ return (
             ) : null}
 
             <>Connected users: {conns_counter}</>
+            <> Ongoing transfers: {ongoing_transfer_count}</>
+
+            
 
             <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '15px', color: '#333' }}>
                 {users_ws_conn_info && users_ws_conn_info.map((user, uIndex) => (
                     <div key={user.user_id + uIndex} style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '15px', backgroundColor: '#fff' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', borderBottom: '1px solid #eee', paddingBottom: '5px' }}>
                             <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#000' }}>
-                                {user.username + (user.username == cookie_finder('username') ? ' (Me)' : '')}
+                                {user.username + (user.identity == 'me' ? ' (Me)' : '')}
                             </div>
                             {user.payload && user.payload.some(p => typeof p === 'object' && p.filename) && (
                                 <button
@@ -272,16 +342,30 @@ return (
                                                 {item.filename}
                                             </div>
                                             <div>
-                                                {item.filesize ? (item.filesize / 1024).toFixed(2) + ' KB' : '0 KB'}
+                                            {/* {item.filesize ? (item.filesize / 1024).toFixed(2) + ' KB' : '0 KB'} */}
+                                            {item.filesize ?? item.filesize}
                                             </div>
                                             <div style={{ display: 'flex', flexDirection: 'row', gap: '5px',justifyContent:'center', alignContent:'center'}}>
                                                 {/* <button style={{ padding: '5px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', backgroundColor: '#eee', border: '1px solid #ccc', borderRadius: '4px' }}>
                                                     <span style={{ fontWeight: 'bold' }}>Download</span>
                                                 </button> */}
                                                 <input type='checkbox' value={item.filename}></input>
-                                                <button onClick={()=>DownloadSingleFile(item.filename, user.user_id)} style={{ padding: '5px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', backgroundColor: '#eee', border: '1px solid #ccc', borderRadius: '4px' }}>
-                                                    <span style={{ fontWeight: 'bold' }}>Down</span>
-                                                </button>
+
+                                                {/* {user.user_id==} */}
+
+                                                {user.identity == 'stranger' ? 
+                                                    (
+                                                        <button onClick={()=>DownloadSingleFile(item.filename, user.user_id)} style={{ padding: '5px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', backgroundColor: '#eee', border: '1px solid #ccc', borderRadius: '4px' }}>
+                                                            <span style={{ fontWeight: 'bold' }}>Down</span>
+                                                        </button>
+                                                    )
+                                                    :
+                                                    <button onClick={()=>drop_file_from_pool(pIndex, item.filename, item.real_filesize, item.file_id)}>
+                                                        <span style={{ fontWeight: 'bold' }}>Drop</span>
+                                                    </button>
+                                            }
+                                                
+
                                             </div>
                                         </div>
                                     ))}

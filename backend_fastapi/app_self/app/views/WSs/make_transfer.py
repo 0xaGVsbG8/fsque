@@ -1,6 +1,8 @@
 
 import json
 from sys import exception
+import time
+from modules.touchRoomRecord import TouchRoom
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from sqlalchemy import true
 # from ..APIs.verify_room import STASHED_ROOMS, ACCESS_TOKENS
@@ -12,7 +14,8 @@ from .set_connection import SINGLE_FILE_TRANSFER_ROOMS
 import asyncio
 
 router = APIRouter()
-MAX_HANDSHAKE_ATTEMPTS = 10
+MAX_HANDSHAKE_ATTEMPTS = 10 # every second so for instance 10 attempts equals 10 seconds
+ROOM_TOUCH_INTERVAL = 10 #how often update room last activity
 
 def erase_conn_room(TRANSFER_ACCESS_TOKEN):
     if SINGLE_FILE_TRANSFER_ROOMS.get(TRANSFER_ACCESS_TOKEN):
@@ -23,7 +26,6 @@ def erase_conn_room(TRANSFER_ACCESS_TOKEN):
 async def websocket_endpoint(ws: WebSocket):
     
     TRANSFER_ACCESS_TOKEN = str(ws.query_params.get("TRANSFER_ACCESS_TOKEN"))
-    ROOM_ID = str(ws.query_params.get("ROOM_ID"))
     USER_ID = ws.cookies.get("user_id")
     USERNAME = ws.cookies.get("username")
     
@@ -36,9 +38,10 @@ async def websocket_endpoint(ws: WebSocket):
             ROOM_DATA['received_chunk'] = True
 
             SINGLE_FILE_TRANSFER_ROOMS[TRANSFER_ACCESS_TOKEN]['HOST_WS' if ROLE == 'HOST' else 'CLIENT_WS'] = ws
-            print(SINGLE_FILE_TRANSFER_ROOMS[TRANSFER_ACCESS_TOKEN], '?<')
+            # print(SINGLE_FILE_TRANSFER_ROOMS[TRANSFER_ACCESS_TOKEN], '?<')
             
             ROOM_DATA = SINGLE_FILE_TRANSFER_ROOMS.get(TRANSFER_ACCESS_TOKEN)
+            ROOM_ID = ROOM_DATA['room_id']
             
             await ws.accept()
             
@@ -89,7 +92,7 @@ async def websocket_endpoint(ws: WebSocket):
                             #     print('client received chunk')
                             #     ROOM_DATA['received_chunk'] = True
                                 
-                            print(data)
+                            # print(data)
                             await asyncio.sleep(3600)
                         
                         
@@ -100,9 +103,16 @@ async def websocket_endpoint(ws: WebSocket):
                     HOST_NOTIFIED = False
                     
                     chunk_counter = 0
+                    LAST_TOUCH = time.time()
                     while True:
                         if SINGLE_FILE_TRANSFER_ROOMS[TRANSFER_ACCESS_TOKEN].get('client_ready'):
-                            print('host received clients presence')
+                            
+                            if time.time() - LAST_TOUCH >= ROOM_TOUCH_INTERVAL:
+                                # print('touching room')
+                                TouchRoom(ROOM_ID)
+                                LAST_TOUCH = time.time()
+                                
+                            # print('host received clients presence')
                             await ws.send_json({'begin_upload':True}) if not HOST_NOTIFIED else None
                             HOST_NOTIFIED = True
                             
@@ -124,12 +134,12 @@ async def websocket_endpoint(ws: WebSocket):
                                 
                             if 'bytes' in msg:
                                 chunk = msg['bytes']
-                                print('received chunk')
+                                # print('received chunk')
                                 await CLIENT_WS.send_bytes(chunk)
-                                print('chunk sent')
+                                # print('chunk sent')
                                 client_response = await CLIENT_WS.receive_json()
                                 if client_response.get('received_chunk'):
-                                    print('client received a chunk!')
+                                    # print('client received a chunk!')
                                     await HOST_WS.send_json({'chunk_received':True})
                                 
                             # chunks =

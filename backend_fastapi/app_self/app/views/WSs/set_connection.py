@@ -1,12 +1,15 @@
 
 
+
 import json, uuid
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, websockets
+from modules.touchRoomRecord import TouchRoom
 # from ..APIs.verify_room import STASHED_ROOMS, ACCESS_TOKENS
 from ..APIs.verify_room import STASHED_ROOMS
 from db_conn import get_db
 from views.models import room_info
 from sqlalchemy.orm import Session
+import time
 
 router = APIRouter()
 
@@ -24,7 +27,7 @@ def validate_token_access(ROOM_ID: str, USER_ID: str):
                 print('Token is valid')
                 return True
             
-        print('denying access')
+        print('denying access for', ROOM_ID, result)
         return False
     
     finally:
@@ -88,16 +91,24 @@ def remove_connection(room_id:str,user_id: WebSocket):
             
         # if not ROOM_CONNECTIONS[room_id]:
         #     del ROOM_CONNECTIONS[room_id]
-            
+        
+
+def count_occupancy(room_id):
+    if room_id in ROOM_CONNECTIONS:
+        return len(ROOM_CONNECTIONS[room_id])
+    return 0
             
 async def broadcast_occupancy(room_id):
     if room_id in ROOM_CONNECTIONS:
+        occupancy = count_occupancy(room_id)
+        
         for key, ws in ROOM_CONNECTIONS[room_id].items():
             ws: WebSocket
             try:
-                await ws.send_json({'connected_users':len(ROOM_CONNECTIONS[room_id])})
+                await ws.send_json({'connected_users':occupancy})
             except Exception as e:
                 print('connection already closed!')
+
 
 async def broadcast_payloads(room_id, user_id):
     
@@ -105,6 +116,9 @@ async def broadcast_payloads(room_id, user_id):
     
     if room_id in ROOM_CONNECTIONS:
         if USERS_PAYLOAD.get('room_' + room_id):
+            
+            TouchRoom(room_id)
+            
             ROOM_PAYLOADS =  USERS_PAYLOAD['room_'+room_id]
             ROOM_PAYLOADS: dict
             user_ws_conn_info = []
@@ -131,7 +145,6 @@ async def broadcast_payloads(room_id, user_id):
                 
                 # print(USER_ID, USERNAME, values)
                 
-            print(user_ws_conn_info, '??')
                 
             for key, ws in ROOM_CONNECTIONS[room_id].items():
                 ws: WebSocket    
@@ -181,8 +194,6 @@ async def websocket_endpoint(ws: WebSocket):
     USERNAME = ws.cookies.get("username")
     
     if USER_ACCESS_TOKEN and ROOM_ID and USER_ID and USERNAME:
-        #Protecting original USER ID
-        USER_ID = str(uuid.uuid4())
         
         print(f"Connecting to room: {ROOM_ID} ")
         if validate_token_access(ROOM_ID, USER_ID):
@@ -229,7 +240,8 @@ async def websocket_endpoint(ws: WebSocket):
                                         # 'target': userdata['filename'],
                                         'target': TARGET,
                                         'HOST': userdata['file_owner_id'],
-                                        'client': USER_ID
+                                        'client': USER_ID,
+                                        'room_id': ROOM_ID
                                     }
                                     
                                     await HOST.send_json({'incoming_transfer': 'user wants to download your files!','role': 'HOST', 'TRANSFER_ACCESS_TOKEN': TRANSFER_ACCESS_TOKEN, 'target': TARGET})
@@ -253,5 +265,4 @@ async def websocket_endpoint(ws: WebSocket):
                 
                 print('user disconnected')
             
-
-          
+    await ws.close()

@@ -6,6 +6,8 @@ from uuid import uuid4
 
 PREFIX='/backend'
 
+from lifespan import lifespan
+
 
 # ROOT_EMAIL = 'root@dash.io'
 # ROOT_PASSWD = 'qwerty'
@@ -66,7 +68,8 @@ sqlite_db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)),'db.sql
 app = FastAPI(
     # docs_url=None,
     # redoc_url=None,
-    # openapi_url=False
+    # openapi_url=False,
+    lifespan=lifespan
 )
 #unmark those to disable public docs
 

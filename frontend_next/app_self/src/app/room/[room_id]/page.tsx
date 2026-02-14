@@ -13,6 +13,7 @@ export type RoomDataProps = {
     room_found: boolean
     ROOM_PROTECTED: boolean
     ALLOW_USER: boolean
+    // USER_ACCESS_TOKEN: string
 }
 
 export type ModifiedFile = {
@@ -25,12 +26,12 @@ let opened_single_file_transfer: boolean = false
 
 const does_room_exists = async (room_id: string): Promise<RoomDataProps> => {
     const response = await fetch(base_fetch + '/does_room_exists' + `/?received_room_id=${room_id}`, { credentials: 'include' })
-    const data = await response.json()
-    console.log(data, 'xd?', room_id)
+    const data = await response.json() as RoomDataProps
+    // console.log(data, 'xd?', room_id)
     if (!data || data.room_found === false) {
-        // window.open('/lobby', '_self')
+        window.open('/lobby', '_self')
     }
-    if(data.USER_ACCESS_TOKEN){set_cookie('USER_ACCESS_TOKEN', data.USER_ACCESS_TOKEN)}
+    // if(data.USER_ACCESS_TOKEN){set_cookie('USER_ACCESS_TOKEN', data.USER_ACCESS_TOKEN)}
     set_cookie('ROOM_ID', room_id)
     return data
 }
@@ -54,13 +55,28 @@ const View = () => {
 
     const params = useParams()
 
+
+
     useEffect(() => {
         const loadRoom = async () => {
             const data = await does_room_exists(String(params.room_id))
             setRoomData(data)
+            if(data.ALLOW_USER) {
+                console.log('launching',data)
+                launch({ws_ref, set_conns_counter, set_users_ws_conn_info,set_ongoing_transfer_count, setMyTempId,fileLsRefForTransfer})
+            }
         }
         loadRoom()
     }, [params.room_id])
+
+
+
+
+
+
+
+
+
 
     const handleRoomLogin = async (password: string) => {
         const roomId = String(params.room_id)
@@ -304,91 +320,96 @@ const View = () => {
         }
       }
 
-      useEffect(()=>{
-        setTimeout(() => {
-            // console.log(cookie_finder('user_id'))
-            console.log('launching')
-            launch({ws_ref, set_conns_counter, set_users_ws_conn_info,set_ongoing_transfer_count, setMyTempId,fileLsRefForTransfer})
-        }, 1000);
-        },[])
 return (
         <>
-            {roomData && !roomData.ALLOW_USER ? (
-                <RoomProtectedPrompt onSubmit={handleRoomLogin} />
-            ) : null}
+            {roomData && roomData.room_found && (
 
-            <>Connected users: {conns_counter}</>
-            <> Ongoing transfers: {ongoing_transfer_count}</>
-            {/* {MyTempId} */}
-            
+                <>
 
-            <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '15px', color: '#333' }}>
-                {users_ws_conn_info && users_ws_conn_info.map((user, uIndex) => (
-                    <div key={user.user_id + uIndex} style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '15px', backgroundColor: '#fff' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', borderBottom: '1px solid #eee', paddingBottom: '5px' }}>
-                            <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#000' }}>
-                                {user.username + (user.temp_identity == MyTempId ? ' (Me)' : '')}
-                            </div>
-                            {user.payload && user.payload.some(p => typeof p === 'object' && p.filename) && (
-                                <button
-                                    onClick={() => setExpandedUsers(prev => ({ ...prev, [user.user_id]: !prev[user.user_id] }))}
-                                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', color: '#555', padding: '2px 8px' }}
-                                >
-                                    {expandedUsers[user.user_id] === false ? '▼' : '▲'}
-                                </button>
-                            )}
-                        </div>
-                        
-                        {expandedUsers[user.user_id] !== false && user.payload && user.payload.some(p => typeof p === 'object' && p.filename) && (
-                            <div style={{ paddingLeft: '10px' }}>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 150px', fontWeight: 'bold', color: '#555', fontSize: '0.9rem' }}>
-                                        <div>Filename</div>
-                                        <div>Size</div>
-                                        <div style={{ textAlign: 'center' }}>Action</div>
+                    {roomData && !roomData.ALLOW_USER && roomData.room_found ? (
+                        <RoomProtectedPrompt onSubmit={handleRoomLogin} />
+                    ) : null}
+
+                    <>Connected users: {conns_counter}</>
+                    <> Ongoing transfers: {ongoing_transfer_count}</>
+                            {/* {MyTempId} */}
+                            
+
+                    <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '15px', color: '#333' }}>
+                        {users_ws_conn_info && users_ws_conn_info.map((user, uIndex) => (
+                            <div key={user.user_id + uIndex} style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '15px', backgroundColor: '#fff' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', borderBottom: '1px solid #eee', paddingBottom: '5px' }}>
+                                    <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#000' }}>
+                                        {user.username + (user.temp_identity == MyTempId ? ' (Me)' : '')}
                                     </div>
-                                    {user.payload.filter(p => typeof p === 'object' && p.filename).map((item, pIndex) => (
-                                        <div key={pIndex} style={{ display: 'grid', gridTemplateColumns: '1fr 120px 150px', alignItems: 'center', padding: '5px 0', borderBottom: '1px dashed #eee', color: '#333' }}>
-                                            <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                {item.filename}
-                                            </div>
-                                            <div>
-                                            {/* {item.filesize ? (item.filesize / 1024).toFixed(2) + ' KB' : '0 KB'} */}
-                                            {item.filesize ?? item.filesize}
-                                            </div>
-                                            <div style={{ display: 'flex', flexDirection: 'row', gap: '5px',justifyContent:'center', alignContent:'center'}}>
-                                                {/* <button style={{ padding: '5px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', backgroundColor: '#eee', border: '1px solid #ccc', borderRadius: '4px' }}>
-                                                    <span style={{ fontWeight: 'bold' }}>Download</span>
-                                                </button> */}
-                                                <input type='checkbox' value={item.filename}></input>
-
-                                                {/* {user.user_id==} */}
-
-                                                {user.temp_identity != MyTempId ? 
-                                                    (
-                                                        <button onClick={()=>DownloadSingleFile(item.filename, user.user_id, item.file_id)} style={{ padding: '5px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', backgroundColor: '#eee', border: '1px solid #ccc', borderRadius: '4px' }}>
-                                                            <span style={{ fontWeight: 'bold' }}>Down</span>
-                                                        </button>
-                                                    )
-                                                    :
-                                                    <button onClick={()=>drop_file_from_pool(pIndex, item.filename, item.real_filesize, item.file_id)}>
-                                                        <span style={{ fontWeight: 'bold' }}>Drop</span>
-                                                    </button>
-                                                }
-                                                
-
-                                            </div>
-                                        </div>
-                                    ))}
+                                    {user.payload && user.payload.some(p => typeof p === 'object' && p.filename) && (
+                                        <button
+                                            onClick={() => setExpandedUsers(prev => ({ ...prev, [user.user_id]: !prev[user.user_id] }))}
+                                            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', color: '#555', padding: '2px 8px' }}
+                                        >
+                                            {expandedUsers[user.user_id] === false ? '▼' : '▲'}
+                                        </button>
+                                    )}
                                 </div>
-                            </div>
-                        )}
-                    </div>
-                ))}
-            </div>
+                                
+                                {expandedUsers[user.user_id] !== false && user.payload && user.payload.some(p => typeof p === 'object' && p.filename) && (
+                                    <div style={{ paddingLeft: '10px' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 150px', fontWeight: 'bold', color: '#555', fontSize: '0.9rem' }}>
+                                                <div>Filename</div>
+                                                <div>Size</div>
+                                                <div style={{ textAlign: 'center' }}>Action</div>
+                                            </div>
+                                            {user.payload.filter(p => typeof p === 'object' && p.filename).map((item, pIndex) => (
+                                                <div key={pIndex} style={{ display: 'grid', gridTemplateColumns: '1fr 120px 150px', alignItems: 'center', padding: '5px 0', borderBottom: '1px dashed #eee', color: '#333' }}>
+                                                    <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                        {item.filename}
+                                                    </div>
+                                                    <div>
+                                                    {/* {item.filesize ? (item.filesize / 1024).toFixed(2) + ' KB' : '0 KB'} */}
+                                                    {item.filesize ?? item.filesize}
+                                                    </div>
+                                                    <div style={{ display: 'flex', flexDirection: 'row', gap: '5px',justifyContent:'center', alignContent:'center'}}>
+                                                        {/* <button style={{ padding: '5px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', backgroundColor: '#eee', border: '1px solid #ccc', borderRadius: '4px' }}>
+                                                            <span style={{ fontWeight: 'bold' }}>Download</span>
+                                                        </button> */}
+                                                        {user.temp_identity != MyTempId && <input type='checkbox' value={item.filename}></input>}
 
-            <button onClick={pickFile}>Pick Files</button>
-            <button onClick={eraseFirstFileFromDisk}>Delete First File</button>
+                                                        {/* {user.user_id==} */}
+
+                                                        {user.temp_identity != MyTempId ? 
+                                                            (
+                                                                <button onClick={()=>DownloadSingleFile(item.filename, user.user_id, item.file_id)} style={{ padding: '5px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', backgroundColor: '#eee', border: '1px solid #ccc', borderRadius: '4px' }}>
+                                                                    <span style={{ fontWeight: 'bold' }}>Down</span>
+                                                                </button>
+                                                            )
+                                                            :
+                                                            <button onClick={()=>drop_file_from_pool(pIndex, item.filename, item.real_filesize, item.file_id)}>
+                                                                <span style={{ fontWeight: 'bold' }}>Drop</span>
+                                                            </button>
+                                                        }
+                                                        
+
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+
+                    <button onClick={pickFile}>Pick Files</button>
+                    <button onClick={eraseFirstFileFromDisk}>Delete First File</button>
+
+
+                </>
+
+            )}
+
+            
+           
 {/* 
             <div>
                 {fileLs.map((file, index) => (

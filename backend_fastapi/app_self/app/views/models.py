@@ -1,5 +1,5 @@
 
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Enum, JSON
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Enum, JSON, Float, null, BigInteger
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import declarative_base
 from datetime import datetime
@@ -48,6 +48,8 @@ class room_info(Base):
         unique=True,
         nullable=False
     )
+
+    lastActivity = Column(BigInteger, default=lambda: int(time.time()), nullable=False)
 
     def __init__(
         self,

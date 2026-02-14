@@ -14,12 +14,14 @@ DATABASE_URL = "mysql+pymysql://root@localhost/fsque"
 #FOR REGULAR USAGE
 # DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/datanestDB"
 
-
+#Displays queries
+# engine = create_engine(DATABASE_URL, echo=True)
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autoflush=False,autocommit=False,bind=engine)
 
 Base = declarative_base()
 db = SessionLocal()
+
 
 
 

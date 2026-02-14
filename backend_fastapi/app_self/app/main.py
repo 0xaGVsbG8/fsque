@@ -1,6 +1,6 @@
 
 
-
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.requests import Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -46,6 +46,9 @@ async def view(request: Request):
 @router.api_route('/test/',methods=['GET','POST','DELETE','PUT','PATCH'])
 async def view(request:Request):
     return ('It works!','Remote-addr -->',request.client.host)
+
+
+
 
 
 app.include_router(router)

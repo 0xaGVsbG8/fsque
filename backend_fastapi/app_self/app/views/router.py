@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 from .APIs import add_room, read_rooms, verify_room
-from .WSs import set_connection, make_transfer, rooms_lobby
+from .WSs import set_connection, rooms_lobby
+from .WSs.make_transfer_modules import make_transfer
 
 views_router = APIRouter()
 

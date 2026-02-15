@@ -4,7 +4,6 @@ import { transfer_log_data_props, user_ws_conn_info } from "@/app/types"
 import { connect } from "http2"
 import { ModifiedFile } from "../../[room_id]/page"
 import { wait_for_client_response_while_uploading } from "@/app/app_conf"
-import UploadSingleFile from "../../[room_id]/room_utils/upload_file"
 
 export type sendFileInChunks_props = transfer_log_data_utils & {
     file_id: string
@@ -171,16 +170,12 @@ const launch = ({ws_ref, set_conns_counter, set_ongoing_transfer_count, set_user
 
                 if(!fileLsRefForTransfer.current) return
 
-                // const target_file = fileLsRefForTransfer.current.filter((item)=>item.file_id==data.target)
+                const target_file = fileLsRefForTransfer.current.filter((item)=>item.file_id==data.target)
                 // console.log(target_file, 'd?')
 
                 // console.log(target_file, '???')
 
                 const TRANSFER_ACCESS_TOKEN = data.TRANSFER_ACCESS_TOKEN
-                // console.log('??')
-                UploadSingleFile({fileLsRefForTransfer: fileLsRefForTransfer, target_id: data.target, TRANSFER_ACCESS_TOKEN: TRANSFER_ACCESS_TOKEN, set_transfer_log_data, transfer_log_data_ref})
-                return 
-
                 console.log("Transfer accepted (HOST):", TRANSFER_ACCESS_TOKEN)
 
                 if(opened_single_file_transfer) return

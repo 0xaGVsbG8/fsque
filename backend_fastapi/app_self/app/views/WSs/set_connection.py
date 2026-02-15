@@ -224,20 +224,21 @@ async def websocket_endpoint(ws: WebSocket):
                         if data.get('user_single_file_transfer_request'):
                             userdata = data['user_single_file_transfer_request']
                             userdata:dict
-                            print(userdata, '?XX')
+                            print(userdata, '?XX', 'user wants to start a trasnfer')
                             # print('\n\n\n',userdata, 'incoming userdata')
                             # import asyncio
                             # await asyncio.sleep(30)
                             if ROOM_CONNECTIONS.get(ROOM_ID):
+                                ...
                                 if ROOM_CONNECTIONS[ROOM_ID].get(userdata['file_owner_id']) and userdata.get('file_owner_id') :
-                                    
-                                    HOST = ROOM_CONNECTIONS[ROOM_ID].get(userdata['file_owner_id'])
-                                    HOST: WebSocket
-                                    
-                                    print('HOST located! -->' , HOST)
+                                    print('Host avaible!')
+                                    HOST: WebSocket = ROOM_CONNECTIONS[ROOM_ID].get(userdata['file_owner_id'])
                                     TRANSFER_ACCESS_TOKEN = str(uuid.uuid4())
                                     
                                     TARGET = userdata['file_id']
+                                    
+                                    # print('HOST located! -->' , HOST)
+                                    
                                     
                                     SINGLE_FILE_TRANSFER_ROOMS[TRANSFER_ACCESS_TOKEN] = {
                                         # 'target': userdata['filename'],
@@ -247,8 +248,9 @@ async def websocket_endpoint(ws: WebSocket):
                                         'room_id': ROOM_ID,
                                         'filesize': userdata['filesize'],
                                         'file_id': userdata['file_id'],
-                                        'client_username': userdata['username']
+                                        'client_username': userdata['client_username']
                                     }
+                                    
                                     
                                     await HOST.send_json({
                                         'incoming_transfer': 'user wants to download your files!',
@@ -264,9 +266,11 @@ async def websocket_endpoint(ws: WebSocket):
                                         'target': TARGET
                                     })
                                     
+                                    print('Room data prepared!')
+                                    
+                                    
                                     # print(SINGLE_FILE_TRANSFER_ROOMS, 'yopyo')
                             # HOST = ROOM_CONNECTIONS[[ROOM_ID][userdata['file_owner_id']]]
-                            print('user wants to transfer')
                         
                     except json.JSONDecodeError:
                         print('data not in json')
@@ -283,6 +287,6 @@ async def websocket_endpoint(ws: WebSocket):
                 await broadcast_occupancy(ROOM_ID)
                 await broadcast_payloads(ROOM_ID, USER_ID)
                 
-                print('user disconnected')
+                # print('user disconnected')
             
     # await ws.close()

@@ -38,6 +38,7 @@ export type transfer_log_data_props = {
     transfer_type: 'upload' | 'download'
     perc: number | string,
     editable: boolean
+    transaction_id: string
     cancel_behaviour?: () => void
     extra_msg?: string
 }

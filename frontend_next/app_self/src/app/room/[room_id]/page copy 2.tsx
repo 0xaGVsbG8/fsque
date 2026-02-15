@@ -10,7 +10,6 @@ import { IncomingTransferData, payload_props, transfer_downloading, transfer_log
 import { v4 as uuidv4 } from 'uuid'
 import Transfer_log from '../comps/transfer_log/transfer_log'
 import get_username from '@/app/modules/get_username'
-import DownloadSingleFile from './room_utils/DownloadSingleFile'
 
 export type RoomDataProps = {
     room_found: boolean
@@ -217,6 +216,181 @@ const View = () => {
     }
 
 
+    
+    const DownloadSingleFile = async (filename: string, username: string, user_id:string, file_id: string, filesize: number, down_button: HTMLButtonElement) => {
+        if (!('showSaveFilePicker' in window)) return
+        if(!ws_ref.current) return
+    
+        try {
+            const fileHandle =  await (window as any).showSaveFilePicker({
+                suggestedName: filename,
+                types: [
+                    {
+                        description: "Text file",
+                        excludeAcceptAllOption: false,
+                        // accept: { "*/*": [".*"] }
+                        // accept: { "text/plain": [".txt"] }
+                    }
+                ]
+            })
+
+            const writable = await fileHandle.createWritable()
+            console.log('downloading file --> ', file_id)
+            // return
+
+
+            const handle_transfer = async(event: MessageEvent) => {
+                const data = JSON.parse(event.data) as IncomingTransferData
+
+                // console.log(data, 'pciker')
+
+                if (data.incoming_transfer && data.TRANSFER_ACCESS_TOKEN) {
+                    console.log(data, '???')
+                    ws_ref.current?.removeEventListener("message", handle_transfer)
+
+                    const target_id =  data.target
+
+                    if(opened_single_file_transfer) return
+                    opened_single_file_transfer = true
+
+                    const TRANSFER_ACCESS_TOKEN = data.TRANSFER_ACCESS_TOKEN
+                    console.log("Transfer accepted:", TRANSFER_ACCESS_TOKEN)
+
+                    const local_ws = new WebSocket(base_ws + '/make-transfer' + `?TRANSFER_ACCESS_TOKEN=${TRANSFER_ACCESS_TOKEN}`)
+                    // ws.binaryType = "arraybuffer"
+                    
+                    setTimeout(() => {
+                        opened_single_file_transfer = false
+                    }, 10);
+
+
+                    const cancel_func = (ws: WebSocket) => {
+                        console.log('canceling download', target_id)
+                        ws.send(JSON.stringify({'transfer_canceled_by': 'client'}))
+                        ws.close()
+                        transfer_log_data_ref.current = transfer_log_data_ref.current!.filter(item =>
+                            item.file_id !== data.target
+                        )
+                        set_transfer_log_data(transfer_log_data_ref.current)
+                    }
+
+
+                    local_ws.onopen = async() => {
+                        console.log('transfer opened for ', file_id)
+                        set_ongoing_transfer_count((prev=>{return prev+1}))
+
+                        down_button.disabled = true
+
+                        const new_record:transfer_log_data_props = {
+                            'user_id': user_id,
+                            'file_id':file_id,
+                            'username': username,
+                            'filename': filename,
+                            'transfer_type': 'download',
+                            'perc': '0.00',
+                            'editable': true,
+                            cancel_behaviour: () => {cancel_func(local_ws)}
+                        }
+
+
+
+                        transfer_log_data_ref.current = [...transfer_log_data_ref.current ?? [], new_record ]
+                        local_ws.send(JSON.stringify({'ready_for_transfer':true, 'role': data.role}))
+                    }
+
+                    local_ws.onmessage = async(message) => {
+                        // console.log(message)
+                        if (message.data instanceof Blob) {
+                            console.log("chunk received")
+                            await writable.write(message.data)
+                            wait_for_client_response_while_uploading &&  local_ws.send(JSON.stringify({'received_chunk':true})) 
+                        } 
+                        else{
+                            try{
+                                const data = JSON.parse(message.data)
+                                console.log(data, 'yoyo')
+                                if(data.transfer_complete){
+                                    console.log('transfer complete (CLIENT)')
+                                    setTimeout(async() => {
+                                        
+                                        down_button.disabled = false
+                                        transfer_log_data_ref.current = transfer_log_data_ref.current!.map(item =>
+                                            item.file_id === data.for_file
+                                                ? { ...item, 'perc': '100.00', editable: false }
+                                                : item
+                                        )
+                                        set_transfer_log_data(transfer_log_data_ref.current)
+
+                                        // console.log(transfer_log_data_ref.current)
+
+
+                                        await writable.close()
+                                        local_ws.close()
+                                        set_ongoing_transfer_count((prev=>{return prev-1}))
+                                        if(ws_ref.current) ws_ref.current.removeEventListener("message", handle_transfer)
+                                    }, 100);
+                                }
+                                if(data.upload_progress){
+                                     
+                                    transfer_log_data_ref.current = transfer_log_data_ref.current!.map(item =>
+                                        item.file_id === data.for_file && item.editable
+                                            ? { ...item, 'perc': data.upload_progress }
+                                            : item
+                                    )
+
+                                    console.log('received progress',transfer_log_data_ref.current)
+
+                                    set_transfer_log_data(transfer_log_data_ref.current)
+                                    // console.log(transfer_log_data_ref.current, 'targ')
+
+                                    // const target_record = transfer_log_data?.filter((item)=>(file_id==item.file_id)) ?? []
+                                    // set_transfer_log_data(prev => {
+                                    //     const updated = prev!.map(item =>
+                                    //         item.file_id === data.for_file
+                                    //             ? { ...item, perc: data.upload_progress }
+                                    //             : item
+                                    //     )
+                                    
+                                        // console.log(updated, 'youo')
+                                    // 
+                                        // return updated
+                                    // })
+
+                                }
+                            }catch(err){}
+                        }
+
+                    }
+
+                    local_ws.onclose = () => {
+                        console.log('conn lose')
+                    }
+
+                    // if(data.role=='client'){
+                    //     console.log(data, '??')
+                    // }
+
+                    // if(ws_ref.current) ws_ref.current.removeEventListener("message", handle_transfer)
+
+                }
+                
+            }
+
+
+            ws_ref.current.addEventListener("message", handle_transfer)
+
+            ws_ref.current.send(JSON.stringify({'user_single_file_transfer_request': {'username': get_username(),'filename':filename,'file_owner_id':user_id, 'file_id': file_id, 'filesize': filesize}}))
+
+            // await writable.close()
+    
+            
+            // await writable.close()
+    
+        } catch (err) {
+            console.error(err)
+        }
+    }
+
     // ERASE FIRST FILE (RAM)
     const eraseFirstFileFromDisk = async () => {
         if (!handles[0]) {
@@ -299,19 +473,7 @@ return (
 
                                                         {user.temp_identity != MyTempId ? 
                                                             (
-                                                                <button onClick={(e)=>{
-                                                                    DownloadSingleFile({
-                                                                        ws_ref: ws_ref,
-                                                                        filename: item.filename,
-                                                                        file_id: item.file_id,
-                                                                        host_username: user.username,
-                                                                        file_owner_id: user.user_id,
-                                                                        filesize: item.real_filesize,
-                                                                        set_transfer_log_data,
-                                                                        transfer_log_data_ref
-                                                                    },
-                                                                    )
-                                                                }} style={{ padding: '5px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', backgroundColor: '#eee', border: '1px solid #ccc', borderRadius: '4px' }}>
+                                                                <button onClick={(e)=>DownloadSingleFile(item.filename,  user.username, user.user_id, item.file_id, item.real_filesize, e.currentTarget)} style={{ padding: '5px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', backgroundColor: '#eee', border: '1px solid #ccc', borderRadius: '4px' }}>
                                                                     <span style={{ fontWeight: 'bold' }}>Down</span>
                                                                 </button>
                                                             )

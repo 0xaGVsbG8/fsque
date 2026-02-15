@@ -77,35 +77,15 @@ async def websocket_endpoint(ws: WebSocket):
                 
                 #waiting for client to be ready
                 notified = False
-                
-                THIS_ROOM_DATA['CHUNK_RECEIVED'] = False
-                FILE_ID_ASSIGNED_BY_USER = THIS_ROOM_DATA['file_id']
-                
-                OFFSET = 0
-                TOTAL_FILESIZE = THIS_ROOM_DATA['filesize']
-                
-                THIS_ROOM_DATA['chunk_event'] = asyncio.Event()
-                
-                chunk = 5 * 1024 * 1024
-            
                 if ROLE == 'client':
                     while True:
-                        client_response = await ws.receive_json()
-                        client_response: dict
-                        if client_response.get('ready_for_transfer'):
+                        data = await ws.receive_json()
+                        if data.get('ready_for_transfer'):
                             print('client ready')
                             THIS_ROOM_DATA['client_ready'] = True
-                            # await asyncio.sleep(3600)
-                            # await asyncio.Future()
+                            await asyncio.sleep(3600)
                             # break
-                        if client_response.get('received_chunk'):
-                            THIS_ROOM_DATA['chunk_event'].set()
-                            
-                            OFFSET += (chunk)
-                            PERC = round(((OFFSET / TOTAL_FILESIZE) * 100), 2)
-                                        
-                            await CLIENT_WS.send_json({'upload_progress': PERC, 'for_file': FILE_ID_ASSIGNED_BY_USER})
-                            await HOST_WS.send_json({'chunk_received':True})
+                                
                             
                         # print(data, '??xxxx')
                         # await asyncio.sleep(3600)
@@ -119,7 +99,9 @@ async def websocket_endpoint(ws: WebSocket):
                     
                     chunk_counter = 0
                     LAST_TOUCH = time.time()
-
+                    OFFSET = 0
+                    TOTAL_FILESIZE = THIS_ROOM_DATA['filesize']
+                    FILE_ID_ASSIGNED_BY_USER = THIS_ROOM_DATA['file_id']
                     
                     while True:
                         try:
@@ -162,29 +144,14 @@ async def websocket_endpoint(ws: WebSocket):
                                     # print('received chunk')
                                     await CLIENT_WS.send_bytes(chunk)
                                     # print('chunk sent')
-                                    
-                                    
-                                    await THIS_ROOM_DATA['chunk_event'].wait()
-                                    THIS_ROOM_DATA['chunk_event'].clear()
-                                    # while True:
-                                    
-                                        # if THIS_ROOM_DATA['CHUNK_RECEIVED']:
-                                        #     THIS_ROOM_DATA['CHUNK_RECEIVED'] = False
-                                        #     break
-                                        
-                                        # await asyncio.sleep(0.00001)
-                                    
-                                    
-                                    
-                                    #TODO
-                                    # client_response = await CLIENT_WS.receive_json()
-                                    # if client_response.get('received_chunk'):
+                                    client_response = await CLIENT_WS.receive_json()
+                                    if client_response.get('received_chunk'):
                                         # print('client received a chunk!')
-                                        # OFFSET += len(chunk)
-                                        # PERC = round(((OFFSET / TOTAL_FILESIZE) * 100), 2)
-                                        # print(PERC, 'of', FILE_ID_ASSIGNED_BY_USER)
-                                        # await CLIENT_WS.send_json({'upload_progress': PERC, 'for_file': FILE_ID_ASSIGNED_BY_USER})
-                                        # await HOST_WS.send_json({'chunk_received':True})
+                                        OFFSET += len(chunk)
+                                        PERC = round(((OFFSET / TOTAL_FILESIZE) * 100), 2)
+                                        print(PERC, 'of', FILE_ID_ASSIGNED_BY_USER)
+                                        await CLIENT_WS.send_json({'upload_progress': PERC, 'for_file': FILE_ID_ASSIGNED_BY_USER})
+                                        await HOST_WS.send_json({'chunk_received':True})
                                     
                       
                                 
@@ -201,6 +168,4 @@ async def websocket_endpoint(ws: WebSocket):
             except WebSocketDisconnect:
                 print(ROLE, 'left')
                 
-
-            finally:
-                print('yolo?',ROLE)
+   

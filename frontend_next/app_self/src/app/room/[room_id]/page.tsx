@@ -302,8 +302,8 @@ const View = () => {
                         // console.log(message)
                         if (message.data instanceof Blob) {
                             console.log("chunk received")
-                            local_ws.send(JSON.stringify({'received_chunk':true}))
                             await writable.write(message.data)
+                            local_ws.send(JSON.stringify({'received_chunk':true}))
                         } 
                         else{
                             try{

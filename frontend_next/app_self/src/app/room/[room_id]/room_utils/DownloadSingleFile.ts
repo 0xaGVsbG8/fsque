@@ -48,7 +48,7 @@ const launch_client_download = async({
     const transfer_ws = new WebSocket(base_ws + '/make-transfer' + `?TRANSFER_ACCESS_TOKEN=${TRANSFER_ACCESS_TOKEN}`)
 
     const handleClose = (extra_msg: string) => {
-        update_perc_value({set_transfer_log_data, transfer_log_data_ref, transaction_id: TRANSFER_ACCESS_TOKEN, extra_msg})
+        update_perc_value({set_transfer_log_data, transfer_log_data_ref, transaction_id: TRANSFER_ACCESS_TOKEN, extra_msg, confirm_hide: true, button_text: 'Clear'})
         transfer_ws.close()
     }
 
@@ -103,7 +103,7 @@ const launch_client_download = async({
             }
 
             if(data.upload_progress){
-                update_perc_value({set_transfer_log_data, transfer_log_data_ref, transaction_id: TRANSFER_ACCESS_TOKEN, perc:data.upload_progress})
+                update_perc_value({set_transfer_log_data, transfer_log_data_ref, transaction_id: TRANSFER_ACCESS_TOKEN, perc:data.upload_progress, confirm_hide: false})
                 console.log('received chunk')
             }
 

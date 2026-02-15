@@ -41,6 +41,7 @@ export type transfer_log_data_props = {
     transaction_id: string
     cancel_behaviour?: () => void
     extra_msg?: string
+    button_text?: 'Cancel' | 'Clear'
 }
 
 

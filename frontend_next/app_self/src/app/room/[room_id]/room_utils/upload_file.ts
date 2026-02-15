@@ -39,6 +39,9 @@ type update_perc_value = transfer_log_data_utils & {
     transaction_id: string
     perc?: string | number
     extra_msg?: string
+    confirm_hide: boolean,
+    button_text?:  'Cancel' | 'Clear'
+
 }
 export const update_perc_value = ({
     transfer_log_data_ref,
@@ -46,10 +49,18 @@ export const update_perc_value = ({
     transaction_id,
     perc,
     extra_msg,
+    confirm_hide,
+    button_text
 }:update_perc_value) => {
+
+    const hide_me = () => {
+        transfer_log_data_ref.current = transfer_log_data_ref.current!.filter((item)=>item.transaction_id!=transaction_id)
+        set_transfer_log_data(transfer_log_data_ref.current)
+    }
+
     transfer_log_data_ref.current = transfer_log_data_ref.current!.map(item =>
         item.transaction_id == transaction_id
-            ? { ...item, 'perc': perc ?? item.perc, extra_msg }
+            ? { ...item, 'perc': perc ?? item.perc, button_text, extra_msg, cancel_behaviour: ()=> {confirm_hide ? hide_me() :( item?.cancel_behaviour ?   item?.cancel_behaviour():  null)}}
             : item
     )
     set_transfer_log_data(transfer_log_data_ref.current)
@@ -106,7 +117,7 @@ export async function sendFileInChunks({file, ws, transfer_log_data_ref, set_tra
         )
 
 
-        update_perc_value({set_transfer_log_data, transfer_log_data_ref, transaction_id: TRANSFER_ACCESS_TOKEN, perc:percent})
+        update_perc_value({set_transfer_log_data, transfer_log_data_ref, transaction_id: TRANSFER_ACCESS_TOKEN, perc:percent, confirm_hide: false})
 
 
 
@@ -139,13 +150,21 @@ const UploadSingleFile = ({fileLsRefForTransfer, target_id, TRANSFER_ACCESS_TOKE
     }
 
     const cancel_behaviour_func = () => {
-        console.log('Canceling upload')
-        transfer_log_data_ref.current = transfer_log_data_ref.current!.map(item =>
-            item.transaction_id == TRANSFER_ACCESS_TOKEN
-                ? { ...item, extra_msg: ' (Canceled by me)' }
-                : item
-        )
-        set_transfer_log_data(transfer_log_data_ref.current)
+        // const hide_me = () => {
+        //     transfer_log_data_ref.current = transfer_log_data_ref.current!.filter((item)=>item.transaction_id!=TRANSFER_ACCESS_TOKEN)
+        //     set_transfer_log_data(transfer_log_data_ref.current)
+        // }
+
+        // console.log('Canceling upload')
+        // transfer_log_data_ref.current = transfer_log_data_ref.current!.map(item =>
+        //     item.transaction_id == TRANSFER_ACCESS_TOKEN
+        //         ? { ...item, extra_msg: ' (Canceled by me)', cancel_behaviour: ()=>hide_me(), button_text: 'Clear'}
+        //         : item
+        // )
+        // u
+        // set_transfer_log_data(transfer_log_data_ref.current)
+        update_perc_value({set_transfer_log_data, transfer_log_data_ref, transaction_id: TRANSFER_ACCESS_TOKEN,extra_msg: ' (Canceled by me)', confirm_hide: true, button_text: 'Clear'})
+
         upload_ws.close()
     }
 
@@ -159,14 +178,7 @@ const UploadSingleFile = ({fileLsRefForTransfer, target_id, TRANSFER_ACCESS_TOKE
 
             if(data.transfer_canceled_by){
                 console.log('client canceled downlod!')
-
-                // transfer_log_data_ref.current = transfer_log_data_ref.current!.map(item =>
-                //     item.transaction_id == TRANSFER_ACCESS_TOKEN
-                //         ? { ...item, extra_msg: ' (Canceled by user)' }
-                //         : item
-                // )
-                // set_transfer_log_data(transfer_log_data_ref.current)
-                update_perc_value({set_transfer_log_data, transfer_log_data_ref, transaction_id: TRANSFER_ACCESS_TOKEN, extra_msg: '(Canceled by client)'})
+                update_perc_value({set_transfer_log_data, transfer_log_data_ref, transaction_id: TRANSFER_ACCESS_TOKEN, extra_msg: '(Canceled by client)', confirm_hide: true, button_text: 'Clear'})
 
                 upload_ws.close()
             }

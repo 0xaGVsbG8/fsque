@@ -34,7 +34,7 @@ async def websocket_endpoint(ws: WebSocket):
     USERNAME = ws.cookies.get("username")
     
     if SINGLE_FILE_TRANSFER_ROOMS.get(TRANSFER_ACCESS_TOKEN):
-        THIS_ROOM_DATA = SINGLE_FILE_TRANSFER_ROOMS[TRANSFER_ACCESS_TOKEN]
+        THIS_ROOM_DATA = SINGLE_FILE_TRANSFER_ROOMS.get(TRANSFER_ACCESS_TOKEN)
         
         if USER_ID == THIS_ROOM_DATA['HOST'] or USER_ID == THIS_ROOM_DATA['client']:
             print('user allowed!')
@@ -42,12 +42,18 @@ async def websocket_endpoint(ws: WebSocket):
             THIS_ROOM_DATA['received_chunk'] = True
 
             THIS_ROOM_DATA['HOST_WS' if ROLE == 'HOST' else 'CLIENT_WS'] = ws
+            # print(SINGLE_FILE_TRANSFER_ROOMS[TRANSFER_ACCESS_TOKEN], '?<')
             
+            THIS_ROOM_DATA = SINGLE_FILE_TRANSFER_ROOMS.get(TRANSFER_ACCESS_TOKEN)
             ROOM_ID = THIS_ROOM_DATA['room_id']
             
             await ws.accept()
             
             try:
+                # CLIENT_WS = SINGLE_FILE_TRANSFER_ROOMS[TRANSFER_ACCESS_TOKEN].get("CLIENT_WS")
+                # await CLIENT_WS.send_json({'xd':2})
+                # print('sent?')
+                
                 HANDSHAKE_ATTEMPTS = 0
  
                 while True:
@@ -55,12 +61,15 @@ async def websocket_endpoint(ws: WebSocket):
                         
                         if HANDSHAKE_ATTEMPTS >= MAX_HANDSHAKE_ATTEMPTS:
                             print('Max handshake attempts has been reached, closing connection')
+                            # await CLIENT_WS.close()
+                            # await HOST_WS.close()
                             await ws.close()
                             erase_conn_room(TRANSFER_ACCESS_TOKEN)
                             return
                         
                         CLIENT_WS = THIS_ROOM_DATA.get("CLIENT_WS")
                         HOST_WS = THIS_ROOM_DATA.get("HOST_WS")
+                        
                         
                         if CLIENT_WS is None or HOST_WS is None:
                             print('one of users didnt connect!')
@@ -76,18 +85,21 @@ async def websocket_endpoint(ws: WebSocket):
                         ...
                 
                 #waiting for client to be ready
-                notified = False
+                
                 if ROLE == 'client':
                     while True:
                         data = await ws.receive_json()
                         if data.get('ready_for_transfer'):
                             print('client ready')
-                            THIS_ROOM_DATA['client_ready'] = True
-                            # break
+                            SINGLE_FILE_TRANSFER_ROOMS['client_ready'] = True
+                            # await asyncio.sleep(3600)
+                            # data = await ws.receive_json()
+                            # if data.get('received_chunk'):
+                            #     print('client received chunk')
+                            #     ROOM_DATA['received_chunk'] = True
                                 
-                            
-                        # print(data, '??xxxx')
-                        # await asyncio.sleep(3600)
+                            # print(data)
+                            await asyncio.sleep(3600)
                         
                         
                 if ROLE == 'HOST':
@@ -101,7 +113,7 @@ async def websocket_endpoint(ws: WebSocket):
                     OFFSET = 0
                     TOTAL_FILESIZE = THIS_ROOM_DATA['filesize']
                     FILE_ID_ASSIGNED_BY_USER = THIS_ROOM_DATA['file_id']
-                    
+                    # print(SINGLE_FILE_TRANSFER_ROOMS[TRANSFER_ACCESS_TOKEN])
                     while True:
                         try:
                             if THIS_ROOM_DATA.get('client_ready'):
@@ -110,8 +122,10 @@ async def websocket_endpoint(ws: WebSocket):
                                     # print('touching room')
                                     TouchRoom(ROOM_ID)
                                     LAST_TOUCH = time.time()
+                                    
+                                # print('host received clients presence')
                                 
-                                await ws.send_json({'begin_upload':True, 'file_id':FILE_ID_ASSIGNED_BY_USER, 'client_username': THIS_ROOM_DATA['client_username']}) if not HOST_NOTIFIED else None
+                                await ws.send_json({'begin_upload':True, 'file_id':FILE_ID_ASSIGNED_BY_USER, 'client_username':  THIS_ROOM_DATA['client_username']}) if not HOST_NOTIFIED else None
                                 HOST_NOTIFIED = True
                                 
                                 THIS_ROOM_DATA['received_chunk'] = False
@@ -124,7 +138,7 @@ async def websocket_endpoint(ws: WebSocket):
                                         print('transfer complete!')
                                         PERC = '100.00'
                                         await CLIENT_WS.send_json({'upload_progress': PERC})
-                                        await CLIENT_WS.send_json({'transfer_complete':True,'for_file':FILE_ID_ASSIGNED_BY_USER})
+                                        await CLIENT_WS.send_json({'transfer_complete':True})
                                         print('client notified')
                                         
                                         try:
@@ -156,7 +170,6 @@ async def websocket_endpoint(ws: WebSocket):
                                 
                                 
                             else:
-                                print('client didnt connect yet')
                                 await asyncio.sleep(1) 
                                 
                         except Exception as e:
@@ -166,5 +179,7 @@ async def websocket_endpoint(ws: WebSocket):
         
             except WebSocketDisconnect:
                 print(ROLE, 'left')
-                
-   
+            
+
+        
+    ...

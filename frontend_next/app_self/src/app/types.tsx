@@ -27,7 +27,28 @@ export type RoomEntry = {
     redirectImmediately?: boolean;
     occupancy: number
 
-  };
+};    
+
+
+export type transfer_log_data_props = {
+    user_id: string
+    file_id: string
+    username: string
+    filename: string
+    transfer_type: 'upload' | 'download'
+    perc: number | string,
+    editable: boolean
+    cancel_behaviour?: () => void
+}
+
+
+export type IncomingTransferData = {
+    incoming_transfer: string
+    role: string
+    TRANSFER_ACCESS_TOKEN: string
+    target: string
+}
+
 
 
 // export {transfer_downloading, transfer_uploading}

@@ -67,7 +67,7 @@ function waitForAck(ws: WebSocket): Promise<void> {
 
 
 
-async function sendFileInChunks({file, ws, transfer_log_data_ref, set_transfer_log_data, file_id}: sendFileInChunks_props) {
+async function sendFileInChunks({file, ws, transfer_log_data_ref, file_id}: sendFileInChunks_props) {
     let offset = 0
     let percent = 0
     while (offset < file.size) {
@@ -84,22 +84,16 @@ async function sendFileInChunks({file, ws, transfer_log_data_ref, set_transfer_l
         await waitForAck(ws)
 
         offset += CHUNK_SIZE
-
-        percent = Math.min(
-            Number(((offset / file.size) * 100).toFixed(2)),
-            100
-        )
-
+        percent = Math.min(Math.round((offset / file.size) * 100), 100)
         console.log('upload progress:', percent)
 
         console.log("before map", transfer_log_data_ref.current)
 
-        transfer_log_data_ref.current = transfer_log_data_ref.current!.map(item =>
-            item.file_id === file_id && item.editable
-                ? { ...item, 'perc': percent }
-                : item
-        )
-        set_transfer_log_data(transfer_log_data_ref.current)
+        // transfer_log_data_ref.current = transfer_log_data_ref.current!.map(item =>
+        //     item.file_id === file_id
+        //         ? { ...item, 'perc': percent }
+        //         : item
+        // )
 
         console.log(transfer_log_data_ref.current, 'yoyo')
     }
@@ -201,16 +195,14 @@ const launch = ({ws_ref, set_conns_counter, set_ongoing_transfer_count, set_user
                         if(here_data.begin_upload){
                             console.log('beggining upload, sending chunks...')
 
-                            const new_record:transfer_log_data_props = {
-                                'user_id': '2',
-                                'file_id':target_file[0].file_id,
-                                'username': here_data.username,
-                                'filename': target_file[0].file.name,
-                                'transfer_type': 'upload',
-                                'perc': '0.00',
-                                editable: true
-                            }
-                            transfer_log_data_ref.current = [...transfer_log_data_ref.current ?? [], new_record ]
+                            // const new_record:transfer_log_data_props = {
+                            //     'user_id': '2',
+                            //     'file_id':file_id,
+                            //     'username': username,
+                            //     'filename': filename,
+                            //     'transfer_type': 'Downloading',
+                            //     'perc': '0.00',
+                            // }
     
     
 
@@ -224,18 +216,6 @@ const launch = ({ws_ref, set_conns_counter, set_ongoing_transfer_count, set_user
                             // await sendFileInChunks({file: target_file[0].file, ws: transfer_ws})
 
                             transfer_ws.send(JSON.stringify({'transfer_complete':true}))
-
-
-
-
-                            transfer_log_data_ref.current = transfer_log_data_ref.current!.map(item =>
-                                item.file_id === target_file[0].file_id && item.editable
-                                    ? { ...item, 'perc': '100.00' , editable: false}
-                                    : item
-                            )
-
-                            set_transfer_log_data(transfer_log_data_ref.current)
-                    
                             console.log('transfer complete')
                             transfer_ws.close()
                             set_ongoing_transfer_count((prev)=>{return prev-1})

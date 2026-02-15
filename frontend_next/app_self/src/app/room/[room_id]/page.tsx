@@ -6,8 +6,10 @@ import { useParams } from 'next/navigation'
 import RoomProtectedPrompt from '../comps/room_protected_prompt'
 import launch, { formatFileSize } from '../comps/app_modules/mk_conn'
 import { cookie_finder,set_cookie } from '@/app/modules/cookie_manager'
-import { payload_props, user_ws_conn_info } from '@/app/types'
+import { IncomingTransferData, payload_props, transfer_downloading, transfer_log_data_props, user_ws_conn_info } from '@/app/types'
 import { v4 as uuidv4 } from 'uuid'
+import Transfer_log from '../comps/transfer_log/transfer_log'
+import get_username from '@/app/modules/get_username'
 
 export type RoomDataProps = {
     room_found: boolean
@@ -53,6 +55,9 @@ const View = () => {
     const [fileLs, setFileLs] = useState<ModifiedFile[]>([])
     const [handles, setHandles] = useState<any[]>([]) // FileSystemFileHandle[]
 
+    const [transfer_log_data, set_transfer_log_data] = useState<transfer_log_data_props[]|null>(null)
+    const transfer_log_data_ref = useRef<transfer_log_data_props[]|null>(null)
+
     const [ongoing_transfer_count, set_ongoing_transfer_count] = useState<number>(0)
 
     const [MyTempId, setMyTempId] = useState<string>('')
@@ -76,7 +81,7 @@ const View = () => {
             setRoomData(data)
             if(data.ALLOW_USER) {
                 console.log('launching',data)
-                launch({ws_ref, set_conns_counter, set_users_ws_conn_info,set_ongoing_transfer_count, setMyTempId,fileLsRefForTransfer})
+                launch({ws_ref, set_conns_counter, set_users_ws_conn_info,set_ongoing_transfer_count, setMyTempId,fileLsRefForTransfer, set_transfer_log_data, transfer_log_data_ref})
             }
         }
         loadRoom()
@@ -149,7 +154,7 @@ const View = () => {
             fileLsRefForTransfer.current = [...fileLsRefForTransfer.current ? fileLsRefForTransfer.current : [], ...files]
 
             
-
+            console.log(fileLs, 'dada?')
             
 
             // console.log(filesWithId,'xx?')
@@ -212,7 +217,7 @@ const View = () => {
 
 
     
-    const DownloadSingleFile = async (filename: string, user_id:string, file_id: string) => {
+    const DownloadSingleFile = async (filename: string, username: string, user_id:string, file_id: string, filesize: number, down_button: HTMLButtonElement) => {
         if (!('showSaveFilePicker' in window)) return
         if(!ws_ref.current) return
     
@@ -230,15 +235,20 @@ const View = () => {
             })
 
             const writable = await fileHandle.createWritable()
-
+            console.log('downloading file --> ', file_id)
+            // return
 
 
             const handle_transfer = async(event: MessageEvent) => {
-                const data = JSON.parse(event.data)
+                const data = JSON.parse(event.data) as IncomingTransferData
 
-                console.log(data, 'pciker')
+                // console.log(data, 'pciker')
 
                 if (data.incoming_transfer && data.TRANSFER_ACCESS_TOKEN) {
+                    console.log(data, '???')
+                    ws_ref.current?.removeEventListener("message", handle_transfer)
+
+                    const target_id =  data.target
 
                     if(opened_single_file_transfer) return
                     opened_single_file_transfer = true
@@ -253,9 +263,38 @@ const View = () => {
                         opened_single_file_transfer = false
                     }, 10);
 
+
+                    const cancel_func = (ws: WebSocket) => {
+                        console.log('canceling download', target_id)
+                        ws.send(JSON.stringify({'transfer_canceled_by': 'client'}))
+                        ws.close()
+                        transfer_log_data_ref.current = transfer_log_data_ref.current!.filter(item =>
+                            item.file_id !== data.target
+                        )
+                        set_transfer_log_data(transfer_log_data_ref.current)
+                    }
+
+
                     local_ws.onopen = async() => {
-                        console.log('transfer opened')
+                        console.log('transfer opened for ', file_id)
                         set_ongoing_transfer_count((prev=>{return prev+1}))
+
+                        down_button.disabled = true
+
+                        const new_record:transfer_log_data_props = {
+                            'user_id': user_id,
+                            'file_id':file_id,
+                            'username': username,
+                            'filename': filename,
+                            'transfer_type': 'download',
+                            'perc': '0.00',
+                            'editable': true,
+                            cancel_behaviour: () => {cancel_func(local_ws)}
+                        }
+
+
+
+                        transfer_log_data_ref.current = [...transfer_log_data_ref.current ?? [], new_record ]
                         local_ws.send(JSON.stringify({'ready_for_transfer':true, 'role': data.role}))
                     }
 
@@ -272,11 +311,50 @@ const View = () => {
                                 if(data.transfer_complete){
                                     console.log('transfer complete (CLIENT)')
                                     setTimeout(async() => {
+                                        
+                                        down_button.disabled = false
+                                        transfer_log_data_ref.current = transfer_log_data_ref.current!.map(item =>
+                                            item.file_id === data.for_file
+                                                ? { ...item, 'perc': '100.00', editable: false }
+                                                : item
+                                        )
+                                        set_transfer_log_data(transfer_log_data_ref.current)
+
+                                        // console.log(transfer_log_data_ref.current)
+
+
                                         await writable.close()
                                         local_ws.close()
                                         set_ongoing_transfer_count((prev=>{return prev-1}))
                                         if(ws_ref.current) ws_ref.current.removeEventListener("message", handle_transfer)
                                     }, 100);
+                                }
+                                if(data.upload_progress){
+                                     
+                                    transfer_log_data_ref.current = transfer_log_data_ref.current!.map(item =>
+                                        item.file_id === data.for_file && item.editable
+                                            ? { ...item, 'perc': data.upload_progress }
+                                            : item
+                                    )
+
+                                    console.log('received progress',transfer_log_data_ref.current)
+
+                                    set_transfer_log_data(transfer_log_data_ref.current)
+                                    // console.log(transfer_log_data_ref.current, 'targ')
+
+                                    // const target_record = transfer_log_data?.filter((item)=>(file_id==item.file_id)) ?? []
+                                    // set_transfer_log_data(prev => {
+                                    //     const updated = prev!.map(item =>
+                                    //         item.file_id === data.for_file
+                                    //             ? { ...item, perc: data.upload_progress }
+                                    //             : item
+                                    //     )
+                                    
+                                        // console.log(updated, 'youo')
+                                    // 
+                                        // return updated
+                                    // })
+
                                 }
                             }catch(err){}
                         }
@@ -300,7 +378,7 @@ const View = () => {
 
             ws_ref.current.addEventListener("message", handle_transfer)
 
-            ws_ref.current.send(JSON.stringify({'user_single_file_transfer_request': {'filename':filename,'file_owner_id':user_id, 'file_id': file_id}}))
+            ws_ref.current.send(JSON.stringify({'user_single_file_transfer_request': {'username': get_username(),'filename':filename,'file_owner_id':user_id, 'file_id': file_id, 'filesize': filesize}}))
 
             // await writable.close()
     
@@ -394,7 +472,7 @@ return (
 
                                                         {user.temp_identity != MyTempId ? 
                                                             (
-                                                                <button onClick={()=>DownloadSingleFile(item.filename, user.user_id, item.file_id)} style={{ padding: '5px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', backgroundColor: '#eee', border: '1px solid #ccc', borderRadius: '4px' }}>
+                                                                <button onClick={(e)=>DownloadSingleFile(item.filename,  user.username, user.user_id, item.file_id, item.real_filesize, e.currentTarget)} style={{ padding: '5px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', backgroundColor: '#eee', border: '1px solid #ccc', borderRadius: '4px' }}>
                                                                     <span style={{ fontWeight: 'bold' }}>Down</span>
                                                                 </button>
                                                             )
@@ -417,7 +495,7 @@ return (
 
                     <button onClick={pickFile}>Pick Files</button>
                     <button onClick={eraseFirstFileFromDisk}>Delete First File</button>
-
+                    <Transfer_log transfer_log_data={transfer_log_data}></Transfer_log>
 
                 </>
 

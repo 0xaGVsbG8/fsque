@@ -101,7 +101,7 @@ async def broadcast_occupancy(room_id):
     if room_id in ROOM_CONNECTIONS:
         occupancy = count_occupancy(room_id)
         
-        for key, ws in ROOM_CONNECTIONS[room_id].items():
+        for key, ws in list(ROOM_CONNECTIONS[room_id].items()):
             ws: WebSocket
             try:
                 await ws.send_json({'connected_users':occupancy})
@@ -224,6 +224,7 @@ async def websocket_endpoint(ws: WebSocket):
                         if data.get('user_single_file_transfer_request'):
                             userdata = data['user_single_file_transfer_request']
                             userdata:dict
+                            print(userdata, '?XX')
                             # print('\n\n\n',userdata, 'incoming userdata')
                             # import asyncio
                             # await asyncio.sleep(30)
@@ -243,11 +244,25 @@ async def websocket_endpoint(ws: WebSocket):
                                         'target': TARGET,
                                         'HOST': userdata['file_owner_id'],
                                         'client': USER_ID,
-                                        'room_id': ROOM_ID
+                                        'room_id': ROOM_ID,
+                                        'filesize': userdata['filesize'],
+                                        'file_id': userdata['file_id'],
+                                        'client_username': userdata['username']
                                     }
                                     
-                                    await HOST.send_json({'incoming_transfer': 'user wants to download your files!','role': 'HOST', 'TRANSFER_ACCESS_TOKEN': TRANSFER_ACCESS_TOKEN, 'target': TARGET})
-                                    await ws.send_json({'incoming_transfer': 'HOST located', 'role':'client', 'TRANSFER_ACCESS_TOKEN': TRANSFER_ACCESS_TOKEN})
+                                    await HOST.send_json({
+                                        'incoming_transfer': 'user wants to download your files!',
+                                        'role': 'HOST',
+                                        'TRANSFER_ACCESS_TOKEN': TRANSFER_ACCESS_TOKEN,
+                                        'target': TARGET
+                                    })
+
+                                    await ws.send_json({
+                                        'incoming_transfer': 'HOST located',
+                                        'role': 'client',
+                                        'TRANSFER_ACCESS_TOKEN': TRANSFER_ACCESS_TOKEN,
+                                        'target': TARGET
+                                    })
                                     
                                     # print(SINGLE_FILE_TRANSFER_ROOMS, 'yopyo')
                             # HOST = ROOM_CONNECTIONS[[ROOM_ID][userdata['file_owner_id']]]

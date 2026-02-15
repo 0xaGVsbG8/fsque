@@ -3,7 +3,7 @@ import { cookie_finder } from "@/app/modules/cookie_manager"
 import { transfer_log_data_props, user_ws_conn_info } from "@/app/types"
 import { connect } from "http2"
 import { ModifiedFile } from "../../[room_id]/page"
-
+import { wait_for_client_response_while_uploading } from "@/app/app_conf"
 
 export type sendFileInChunks_props = transfer_log_data_utils & {
     file_id: string
@@ -81,7 +81,7 @@ async function sendFileInChunks({file, ws, transfer_log_data_ref, set_transfer_l
 
 
         ws.send(buffer)
-        await waitForAck(ws)
+        wait_for_client_response_while_uploading && await waitForAck(ws)
 
         offset += CHUNK_SIZE
 
@@ -90,9 +90,9 @@ async function sendFileInChunks({file, ws, transfer_log_data_ref, set_transfer_l
             100
         )
 
-        console.log('upload progress:', percent)
+        // console.log('upload progress:', percent)
 
-        console.log("before map", transfer_log_data_ref.current)
+        // console.log("before map", transfer_log_data_ref.current)
 
         transfer_log_data_ref.current = transfer_log_data_ref.current!.map(item =>
             item.file_id === file_id && item.editable
@@ -101,7 +101,7 @@ async function sendFileInChunks({file, ws, transfer_log_data_ref, set_transfer_l
         )
         set_transfer_log_data(transfer_log_data_ref.current)
 
-        console.log(transfer_log_data_ref.current, 'yoyo')
+        // console.log(transfer_log_data_ref.current, '')
     }
     // Send an empty message to signal end of file
     // ws.send(JSON.stringify({ transfer_complete: true }))
@@ -111,6 +111,7 @@ const launch = ({ws_ref, set_conns_counter, set_ongoing_transfer_count, set_user
 
     const USER_ACCESS_TOKEN = cookie_finder('USER_ACCESS_TOKEN')
     const ROOM_ID = cookie_finder('ROOM_ID')
+
 
     if(connected) return
 
@@ -198,8 +199,30 @@ const launch = ({ws_ref, set_conns_counter, set_ongoing_transfer_count, set_user
                     try{
                         // console.log(target_file)
                         const here_data = JSON.parse(msg.data)
+                        console.log(here_data)
+
+                        if(here_data.transfer_canceled_by){
+                            console.log('User canceled transfer!')
+                            
+                            transfer_log_data_ref.current = transfer_log_data_ref.current!.map(item =>
+                                item.file_id === target_file[0].file_id && item.editable
+                                    ? { ...item, 'perc': '100.00' , editable: false, extra_msg: 'Canceled by client'} 
+                                    : item
+                            )
+                            set_transfer_log_data(transfer_log_data_ref.current)
+
+
+
+                        }
+
                         if(here_data.begin_upload){
                             console.log('beggining upload, sending chunks...')
+
+                            const cancel_behaviour_func = () => {
+                                console.log('canceling upload')
+                                transfer_ws.send(JSON.stringify({'transfer_canceled':'HOST'}))
+                                // transfer_ws.close()
+                            }
 
                             const new_record:transfer_log_data_props = {
                                 'user_id': '2',
@@ -208,7 +231,8 @@ const launch = ({ws_ref, set_conns_counter, set_ongoing_transfer_count, set_user
                                 'filename': target_file[0].file.name,
                                 'transfer_type': 'upload',
                                 'perc': '0.00',
-                                editable: true
+                                editable: true,
+                                cancel_behaviour: ()=>{cancel_behaviour_func()}
                             }
                             transfer_log_data_ref.current = [...transfer_log_data_ref.current ?? [], new_record ]
     

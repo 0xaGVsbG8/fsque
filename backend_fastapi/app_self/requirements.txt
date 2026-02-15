@@ -6,3 +6,4 @@ pandas
 pydantic
 jinja2
 starlette
+python-dotenv

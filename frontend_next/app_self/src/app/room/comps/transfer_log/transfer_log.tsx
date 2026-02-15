@@ -36,6 +36,7 @@ const Transfer_log = ({transfer_log_data}:Transfer_log_props) => {
                                 {value.username}
                             </div>
                             <div>{value.perc}%</div>
+                            <div>{value.extra_msg}</div>
                             <button onClick={()=>value.cancel_behaviour?.()}>Cancel</button>
                         </div>
                     )

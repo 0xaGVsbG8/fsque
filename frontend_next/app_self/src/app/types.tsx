@@ -39,6 +39,7 @@ export type transfer_log_data_props = {
     perc: number | string,
     editable: boolean
     cancel_behaviour?: () => void
+    extra_msg?: string
 }
 
 

@@ -24,6 +24,19 @@ def erase_conn_room(TRANSFER_ACCESS_TOKEN):
 
 
 
+async def relay(sender: WebSocket, receiver: WebSocket):
+    
+    try:
+        while True:
+            msg = await sender.receive()
+            if 'bytes' in msg:
+                ...
+        ...
+    
+    except Exception as e:
+        print(e, '\n\nerr in relay')
+
+
 
 
 @router.websocket("/make-transfer")
@@ -91,14 +104,14 @@ async def websocket_endpoint(ws: WebSocket):
                         if data.get('ready_for_transfer'):
                             print('client ready')
                             SINGLE_FILE_TRANSFER_ROOMS[TRANSFER_ACCESS_TOKEN]['client_ready'] = True
-                            # await asyncio.sleep(3600)
+                            await asyncio.sleep(3600)
                             # data = await ws.receive_json()
                             # if data.get('received_chunk'):
                             #     print('client received chunk')
                             #     ROOM_DATA['received_chunk'] = True
                                 
                             # print(data)
-                            await asyncio.sleep(1)
+                            # await asyncio.sleep(1)
                         
                         
                 if ROLE == 'HOST':

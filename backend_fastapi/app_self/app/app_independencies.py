@@ -3,6 +3,7 @@
 import platform,os
 from fastapi import APIRouter, FastAPI, Request
 from uuid import uuid4
+from dotenv import load_dotenv
 
 PREFIX='/backend'
 

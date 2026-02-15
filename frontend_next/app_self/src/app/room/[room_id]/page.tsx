@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import { base_fetch, base_ws } from '@/app/app_conf'
+import { base_fetch, base_ws, wait_for_client_response_while_uploading } from '@/app/app_conf'
 import { useParams } from 'next/navigation'
 import RoomProtectedPrompt from '../comps/room_protected_prompt'
 import launch, { formatFileSize } from '../comps/app_modules/mk_conn'
@@ -303,11 +303,12 @@ const View = () => {
                         if (message.data instanceof Blob) {
                             console.log("chunk received")
                             await writable.write(message.data)
-                            local_ws.send(JSON.stringify({'received_chunk':true}))
+                            wait_for_client_response_while_uploading &&  local_ws.send(JSON.stringify({'received_chunk':true})) 
                         } 
                         else{
                             try{
                                 const data = JSON.parse(message.data)
+                                console.log(data, 'yoyo')
                                 if(data.transfer_complete){
                                     console.log('transfer complete (CLIENT)')
                                     setTimeout(async() => {

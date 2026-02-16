@@ -43,11 +43,14 @@ async def broadcast_rooms():
 
 
 
-@router.websocket("/lobby/")
+@router.websocket("/rooms-lobby/")
 async def websocket_endpoint(ws: WebSocket):
+    await ws.accept()
+    print('yolo')
+    
     USER_ID = ws.cookies.get("user_id")
     if USER_ID:
-        await ws.accept()
+        # await ws.accept()
         LOBBY_CONNS.append(ws)
         rooms = get_rooms()
         await ws.send_json({'rooms':rooms})
@@ -60,4 +63,4 @@ async def websocket_endpoint(ws: WebSocket):
                 LOBBY_CONNS.remove(ws) if ws in LOBBY_CONNS else None
                 return
     else:
-        print('no user id')
+        print('no user id') 

@@ -102,7 +102,9 @@ export default function LobbyPage() {
   };
 
   const gather_rooms_ls = async() => {
-    const ws_url = base_ws + '/lobby/'
+    const ws_url = base_ws + '/rooms-lobby/'
+
+    // const upload_ws = new WebSocket(base_ws + '/single-file-transfer/' + `?TRANSFER_ACCESS_TOKEN=${TRANSFER_ACCESS_TOKEN}`)
 
     if(ws_opened.current) return
     ws_opened.current = true

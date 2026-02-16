@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import styles from "./CreateRoomPanel.module.css";
-import { base_fetch } from "@/app/app_conf";
-import get_username from "@/app/modules/get_username";
+import { base_fetch } from "../../app_conf";
+import get_username from "../../modules/get_username";
 import { redirect } from "next/dist/server/api-utils";
 import { redirect_to_room } from "../page";
 

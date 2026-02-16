@@ -1,6 +1,6 @@
 'use client'
 import {useEffect, useState} from 'react'
-import { base_fetch } from '@/app/app_conf'
+import { base_fetch } from '../../app_conf'
 import { useParams } from 'next/navigation'
 import RoomProtectedPrompt from '../comps/room_protected_prompt'
 

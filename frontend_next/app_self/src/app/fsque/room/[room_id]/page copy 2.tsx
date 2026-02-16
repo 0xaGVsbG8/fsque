@@ -1,15 +1,15 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import { base_fetch, base_ws, wait_for_client_response_while_uploading } from '@/app/app_conf'
+import { base_fetch, base_ws, wait_for_client_response_while_uploading } from '../../app_conf'
 import { useParams } from 'next/navigation'
 import RoomProtectedPrompt from '../comps/room_protected_prompt'
 import launch, { formatFileSize } from '../comps/app_modules/mk_conn'
-import { cookie_finder,set_cookie } from '@/app/modules/cookie_manager'
-import { IncomingTransferData, payload_props, transfer_downloading, transfer_log_data_props, user_ws_conn_info } from '@/app/types'
+import { cookie_finder,set_cookie } from '../../modules/cookie_manager'
+import { IncomingTransferData, payload_props, transfer_downloading, transfer_log_data_props, user_ws_conn_info } from '../../types'
 import { v4 as uuidv4 } from 'uuid'
 import Transfer_log from '../comps/transfer_log/transfer_log'
-import get_username from '@/app/modules/get_username'
+import get_username from '../../modules/get_username'
 
 export type RoomDataProps = {
     room_found: boolean

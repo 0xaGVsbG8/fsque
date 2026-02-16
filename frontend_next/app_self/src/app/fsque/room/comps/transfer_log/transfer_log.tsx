@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { transfer_downloading, transfer_log_data_props } from "@/app/types"
+import { transfer_downloading, transfer_log_data_props } from "../../../types"
 import styles from './transfer_log.module.css'
 
 

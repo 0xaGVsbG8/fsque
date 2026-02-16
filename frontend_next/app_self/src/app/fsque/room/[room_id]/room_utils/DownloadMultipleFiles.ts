@@ -1,7 +1,7 @@
-import get_username from "@/app/modules/get_username"
+import get_username from "../../../modules/get_username"
 import { transfer_log_data_utils } from "./DownloadSingleFile"
-import { base_ws, wait_for_client_response_while_uploading } from "@/app/app_conf copy"
-import { transfer_log_data_props } from "@/app/types"
+import { base_ws, wait_for_client_response_while_uploading } from "../../../app_conf copy"
+import { transfer_log_data_props } from "../../../types"
 import { update_perc_value } from "./upload_file"
 
 export type DownloadMultipleFilesEntry = {

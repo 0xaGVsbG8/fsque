@@ -1,6 +1,6 @@
-import { CHUNK_SIZE } from "@/app/app_conf"
-import { base_ws, wait_for_client_response_while_uploading } from "@/app/app_conf copy"
-import { transfer_log_data_props, user_ws_conn_info } from "@/app/types"
+import { CHUNK_SIZE } from "../../../app_conf"
+import { base_ws, wait_for_client_response_while_uploading } from "../../../app_conf copy"
+import { transfer_log_data_props, user_ws_conn_info } from "../../../types"
 
 let opened_single_file_transfer: boolean = false
 

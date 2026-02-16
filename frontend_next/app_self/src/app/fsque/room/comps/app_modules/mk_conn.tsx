@@ -1,9 +1,9 @@
-import { base_ws } from "@/app/app_conf"
-import { cookie_finder } from "@/app/modules/cookie_manager"
-import { transfer_log_data_props, user_ws_conn_info } from "@/app/types"
+import { base_ws } from "../../../app_conf"
+import { cookie_finder } from "../../../modules/cookie_manager"
+import { transfer_log_data_props, user_ws_conn_info } from "../../../types"
 import { connect } from "http2"
 import { ModifiedFile } from "../../[room_id]/page"
-import { wait_for_client_response_while_uploading } from "@/app/app_conf"
+import { wait_for_client_response_while_uploading } from "../../../app_conf"
 import UploadSingleFile from "../../[room_id]/room_utils/upload_file"
 import UploadMultipleFiles from "../../[room_id]/room_utils/upload_multiple_files"
 

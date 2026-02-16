@@ -100,6 +100,28 @@ const View = () => {
 
 
 
+    // Clean up selectedFiles when a user's payload changes (e.g. file dropped)
+    useEffect(() => {
+        if (!users_ws_conn_info) return
+        setSelectedFiles(prev => {
+            const next = { ...prev }
+            let changed = false
+            for (const userId of Object.keys(next)) {
+                const user = users_ws_conn_info.find(u => u.user_id === userId)
+                const validIds = new Set(
+                    user?.payload?.filter(p => typeof p === 'object' && p.file_id).map(p => p.file_id) ?? []
+                )
+                const filtered = new Set([...next[userId]].filter(id => validIds.has(id)))
+                if (filtered.size !== next[userId].size) {
+                    changed = true
+                    if (filtered.size === 0) delete next[userId]
+                    else next[userId] = filtered
+                }
+            }
+            return changed ? next : prev
+        })
+    }, [users_ws_conn_info])
+
     const handleRoomLogin = async (password: string) => {
         const roomId = String(params.room_id)
         try {

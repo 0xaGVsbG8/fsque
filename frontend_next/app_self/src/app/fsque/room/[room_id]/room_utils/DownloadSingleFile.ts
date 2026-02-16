@@ -1,4 +1,4 @@
-import { base_ws, wait_for_client_response_while_uploading } from "../../../app_conf copy"
+import { base_ws, wait_for_client_response_while_uploading } from "../../../app_conf"
 import get_username from "../../../modules/get_username"
 import { transfer_log_data_props } from "../../../types"
 import { update_perc_value } from "./upload_file"
@@ -48,7 +48,7 @@ const launch_client_download = async({
     set_ongoing_transfer_count
 }:launch_client_transfer_props) => {
 
-    const transfer_ws = new WebSocket(base_ws + '/make-transfer' + `?TRANSFER_ACCESS_TOKEN=${TRANSFER_ACCESS_TOKEN}`)
+    const transfer_ws = new WebSocket(base_ws + '/single-file-transfer/' + `?TRANSFER_ACCESS_TOKEN=${TRANSFER_ACCESS_TOKEN}`)
 
     const handleClose = (extra_msg: string) => {
         update_perc_value({set_transfer_log_data, transfer_log_data_ref, transaction_id: TRANSFER_ACCESS_TOKEN, extra_msg, confirm_hide: true, button_text: 'Clear'})

@@ -15,7 +15,14 @@ module.exports = {
 
 const nextConfig: NextConfig = {
   /* config options here */
+  // basePath: '/fsque',
   reactCompiler: true,
+  allowedDevOrigins: [
+    'http://localhost:9000',
+    'http://localhost:9000',
+    'https://woodruf-webkit.webhop.me',
+    'https://zst-href.rest'
+  ],
 };
 
 export default nextConfig;

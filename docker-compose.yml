@@ -38,6 +38,8 @@ services:
       context: ./frontend_next
       dockerfile: Dockerfile
     container_name: next_frontend
+    env_file:
+      - ./.env
     expose:
       - "3000"
     networks:

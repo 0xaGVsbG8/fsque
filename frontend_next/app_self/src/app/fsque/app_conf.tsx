@@ -2,7 +2,7 @@
 console.log("API HOST:", process.env.NEXT_PUBLIC_API_BASE_FETCH);
 
 const app_title = 'FsQue'
-const default_app_url = '/lobby'
+const default_app_url = '/fsque/lobby'
 
 const CHUNK_SIZE = 10 * 1024  * 1024
 

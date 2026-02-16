@@ -55,7 +55,7 @@ async def hook_peer_handshake(
 
 
 
-@router.websocket("/multiple-files-transfer")
+@router.websocket("/multiple-files-transfer/")
 async def websocket_endpoint(ws: WebSocket):
     
     TRANSFER_ACCESS_TOKEN = str(ws.query_params.get("TRANSFER_ACCESS_TOKEN"))

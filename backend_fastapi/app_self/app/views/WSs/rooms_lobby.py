@@ -43,7 +43,7 @@ async def broadcast_rooms():
 
 
 
-@router.websocket("/lobby")
+@router.websocket("/lobby/")
 async def websocket_endpoint(ws: WebSocket):
     USER_ID = ws.cookies.get("user_id")
     if USER_ID:
@@ -59,3 +59,5 @@ async def websocket_endpoint(ws: WebSocket):
                 # print('user disconnected')
                 LOBBY_CONNS.remove(ws) if ws in LOBBY_CONNS else None
                 return
+    else:
+        print('no user id')

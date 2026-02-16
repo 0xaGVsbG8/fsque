@@ -19,7 +19,7 @@ STASHED_ROOMS: [Dict[str, int]] = {}
 ACCESS_TOKENS = set()
 
 
-@router.get('/does_room_exists')
+@router.get('/does_room_exists/')
 async def view(request: Request, received_room_id:str = Query(...),db: Session = Depends(get_db), bg_tasks: BackgroundTasks = None):
     ...
     USER_ID = request.state.user_id
@@ -92,7 +92,7 @@ class ROOM_CREDS_PROPS(BaseModel):
     received_room_id: str
     received_passwd: str
 
-@router.post('/check_room_password')
+@router.post('/check_room_password/')
 async def view(request: Request, userdata: ROOM_CREDS_PROPS,db: Session = Depends(get_db), bg_tasks: BackgroundTasks = None):
     
     USER_ID = request.state.user_id

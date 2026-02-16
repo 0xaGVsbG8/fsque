@@ -61,7 +61,7 @@ async def hook_peer_handshake(
 
 
 
-@router.websocket("/make-transfer")
+@router.websocket("/single-file-transfer/")
 async def websocket_endpoint(ws: WebSocket):
     
     TRANSFER_ACCESS_TOKEN = str(ws.query_params.get("TRANSFER_ACCESS_TOKEN"))

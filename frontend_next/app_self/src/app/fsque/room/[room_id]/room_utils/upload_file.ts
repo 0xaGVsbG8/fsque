@@ -1,5 +1,5 @@
 import { CHUNK_SIZE } from "../../../app_conf"
-import { base_ws, wait_for_client_response_while_uploading } from "../../../app_conf copy"
+import { base_ws, wait_for_client_response_while_uploading } from "../../../app_conf"
 import { transfer_log_data_props, user_ws_conn_info } from "../../../types"
 
 let opened_single_file_transfer: boolean = false
@@ -145,7 +145,7 @@ const UploadSingleFile = ({fileLsRefForTransfer, target_id, TRANSFER_ACCESS_TOKE
         opened_single_file_transfer = false
     }, 10);
 
-    const upload_ws = new WebSocket(base_ws + '/make-transfer' + `?TRANSFER_ACCESS_TOKEN=${TRANSFER_ACCESS_TOKEN}`)
+    const upload_ws = new WebSocket(base_ws + '/single-file-transfer/' + `?TRANSFER_ACCESS_TOKEN=${TRANSFER_ACCESS_TOKEN}`)
     upload_ws.onopen = () => {
         console.log('upload transfer opened')
         set_ongoing_transfer_count(prev => prev + 1)

@@ -190,7 +190,7 @@ def update_users_payload(room_id, user_id, payload):
 
 
 
-@router.websocket("/xd")
+@router.websocket("/room-control/")
 async def websocket_endpoint(ws: WebSocket):
     
     USER_ACCESS_TOKEN = str(ws.query_params.get("USER_ACCESS_TOKEN"))

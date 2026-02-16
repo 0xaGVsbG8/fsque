@@ -24,7 +24,7 @@ import { remove_cookie, set_cookie } from "../modules/cookie_manager";
 // ];
 
 const redirect_to_room = (room_id: string, copy_url: boolean = false) => {
-  const url = `/room/${room_id}`
+  const url = `/fsque/room/${room_id}`
 
   if(copy_url){
     try{
@@ -102,7 +102,7 @@ export default function LobbyPage() {
   };
 
   const gather_rooms_ls = async() => {
-    const ws_url = base_ws + '/lobby'
+    const ws_url = base_ws + '/lobby/'
 
     if(ws_opened.current) return
     ws_opened.current = true

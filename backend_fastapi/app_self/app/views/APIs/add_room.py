@@ -23,7 +23,7 @@ class make_room_props(BaseModel):
     owner: str
 
 
-@router.post('/make_room')
+@router.post('/make_room/')
 async def view(request: Request, userdata: make_room_props, db: Session = Depends(get_db),  bg_tasks: BackgroundTasks = None):
     
     USER_ID = request.state.user_id

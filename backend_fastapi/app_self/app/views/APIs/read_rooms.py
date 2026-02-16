@@ -16,7 +16,7 @@ router = APIRouter()
 
 
 
-@router.get('/read_rooms')
+@router.get('/read_rooms/')
 async def view(request: Request, db: Session = Depends(get_db), bg_tasks: BackgroundTasks = None):
     
     # result = db_conn.read_rooms(js_visable=True)

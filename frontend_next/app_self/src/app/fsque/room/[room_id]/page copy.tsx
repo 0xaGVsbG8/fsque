@@ -13,11 +13,11 @@ type room_data_props = {
 
 
 const does_room_exists = async(room_id: string): Promise<room_data_props> => {
-    const response = await fetch(base_fetch + '/does_room_exists' + `/?received_room_id=${room_id}`, {credentials:'include'})
+    const response = await fetch(base_fetch + `/does_room_exists?received_room_id=${room_id}`, {credentials:'include'})
     const data = await response.json()
     console.log(data)
     if(!data || data.room_found === false) {
-        window.open('/lobby','_self')
+        window.open('/fsque/lobby','_self')
     }
    return data
 }

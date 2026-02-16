@@ -69,45 +69,7 @@ function waitForAck(ws: WebSocket): Promise<void> {
 
 
 
-async function sendFileInChunks({file, ws, transfer_log_data_ref, set_transfer_log_data, file_id}: sendFileInChunks_props) {
-    let offset = 0
-    let percent = 0
-    while (offset < file.size) {
 
-        const slice = file.slice(offset, offset + CHUNK_SIZE)
-        const buffer = await slice.arrayBuffer()
-
-        // console.log('sending chunk')
-
-
-
-
-        ws.send(buffer)
-        wait_for_client_response_while_uploading && await waitForAck(ws)
-
-        offset += CHUNK_SIZE
-
-        percent = Math.min(
-            Number(((offset / file.size) * 100).toFixed(2)),
-            100
-        )
-
-        // console.log('upload progress:', percent)
-
-        // console.log("before map", transfer_log_data_ref.current)
-
-        transfer_log_data_ref.current = transfer_log_data_ref.current!.map(item =>
-            item.file_id === file_id && item.editable
-                ? { ...item, 'perc': percent }
-                : item
-        )
-        set_transfer_log_data(transfer_log_data_ref.current)
-
-        // console.log(transfer_log_data_ref.current, '')
-    }
-    // Send an empty message to signal end of file
-    // ws.send(JSON.stringify({ transfer_complete: true }))
-}
 
 const launch = ({ws_ref, set_conns_counter, set_ongoing_transfer_count, set_users_ws_conn_info,setMyTempId, fileLsRefForTransfer, set_transfer_log_data, transfer_log_data_ref}:launch_props) => {
 
@@ -119,7 +81,9 @@ const launch = ({ws_ref, set_conns_counter, set_ongoing_transfer_count, set_user
 
     if(!ROOM_ID) return
 
-    ws_ref.current = new WebSocket(base_ws + '/xd' + `?ROOM_ID=${ROOM_ID}&USER_ACCESS_TOKEN=${USER_ACCESS_TOKEN}`)
+    const url = base_ws + '/room-control/' + `?ROOM_ID=${ROOM_ID}&USER_ACCESS_TOKEN=${USER_ACCESS_TOKEN}`
+
+    ws_ref.current = new WebSocket(url)
 
     const ws = ws_ref.current
 
@@ -133,7 +97,7 @@ const launch = ({ws_ref, set_conns_counter, set_ongoing_transfer_count, set_user
     // const ws = new WebSocket(base_ws + '/xd')
     if(!ws) return 
     ws.onopen = () => {
-        console.log('connection established')
+        console.log('connection established with', url)
         // set_ongoing_transfer_count((prev)=>{return prev+1})
         // const username = cookie_finder('username')
         // if(username){

@@ -1,6 +1,6 @@
 import get_username from "../../../modules/get_username"
 import { transfer_log_data_utils } from "./DownloadSingleFile"
-import { base_ws, wait_for_client_response_while_uploading } from "../../../app_conf copy"
+import { base_ws, wait_for_client_response_while_uploading } from "../../../app_conf"
 import { transfer_log_data_props } from "../../../types"
 import { update_perc_value } from "./upload_file"
 
@@ -46,7 +46,7 @@ const launch_client_download = async ({
     set_ongoing_transfer_count
 }: launch_client_transfer_props) => {
 
-    const transfer_ws = new WebSocket(base_ws + '/multiple-files-transfer' + `?TRANSFER_ACCESS_TOKEN=${TRANSFER_ACCESS_TOKEN}`)
+    const transfer_ws = new WebSocket(base_ws + '/multiple-files-transfer/' + `?TRANSFER_ACCESS_TOKEN=${TRANSFER_ACCESS_TOKEN}`)
 
     let current_writable: FileSystemWritableFileStream | null = null
     let current_file_id: string = ''

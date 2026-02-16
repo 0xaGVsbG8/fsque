@@ -1,4 +1,4 @@
-import { base_ws, wait_for_client_response_while_uploading } from "../../../app_conf copy"
+import { base_ws, wait_for_client_response_while_uploading } from "../../../app_conf"
 import { transfer_log_data_props } from "../../../types"
 import { ModifiedFile, transfer_log_data_utils, sendFileInChunks, update_perc_value } from "./upload_file"
 
@@ -54,7 +54,7 @@ const UploadMultipleFiles = ({
     opened_multiple_file_transfer = true
     setTimeout(() => { opened_multiple_file_transfer = false }, 10)
 
-    const upload_ws = new WebSocket(base_ws + '/multiple-files-transfer' + `?TRANSFER_ACCESS_TOKEN=${TRANSFER_ACCESS_TOKEN}`)
+    const upload_ws = new WebSocket(base_ws + '/multiple-files-transfer/' + `?TRANSFER_ACCESS_TOKEN=${TRANSFER_ACCESS_TOKEN}`)
     let record_created = false
 
     upload_ws.onopen = () => {

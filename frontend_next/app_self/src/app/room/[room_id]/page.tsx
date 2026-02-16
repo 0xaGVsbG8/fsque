@@ -11,6 +11,8 @@ import { v4 as uuidv4 } from 'uuid'
 import Transfer_log from '../comps/transfer_log/transfer_log'
 import get_username from '@/app/modules/get_username'
 import DownloadSingleFile from './room_utils/DownloadSingleFile'
+import styles from './room.module.css'
+import DownloadMultipleFiles from './room_utils/DownloadMultipleFiles'
 
 export type RoomDataProps = {
     room_found: boolean
@@ -66,6 +68,7 @@ const View = () => {
     const [conns_counter, set_conns_counter] = useState<number | null>(null)
     const [users_ws_conn_info, set_users_ws_conn_info] = useState<user_ws_conn_info[] | null>(null)
     const [expandedUsers, setExpandedUsers] = useState<Record<string, boolean>>({})
+    const [selectedFiles, setSelectedFiles] = useState<Record<string, Set<string>>>({})
     const ws_ref = useRef<WebSocket | null>(null)
     const just_files_names = useRef<payload_props[]>([])
 
@@ -241,114 +244,135 @@ const View = () => {
       }
 
 return (
-        <>
+        <div className={styles.page}>
             {roomData && roomData.room_found && (
-
                 <>
-
                     {roomData && !roomData.ALLOW_USER && roomData.room_found ? (
                         <RoomProtectedPrompt onSubmit={handleRoomLogin} />
                     ) : null}
 
-                    <>Connected users: {conns_counter}</>
-                    <> Ongoing transfers: {ongoing_transfer_count}</>
-                            {/* {MyTempId} */}
-                            
-
-                    <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '15px', color: '#333' }}>
-                        {users_ws_conn_info && users_ws_conn_info.map((user, uIndex) => (
-                            <div key={user.user_id + uIndex} style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '15px', backgroundColor: '#fff' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', borderBottom: '1px solid #eee', paddingBottom: '5px' }}>
-                                    <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#000' }}>
-                                        {user.username + (user.temp_identity == MyTempId ? ' (Me)' : '')}
-                                    </div>
-                                    {user.payload && user.payload.some(p => typeof p === 'object' && p.filename) && (
-                                        <button
-                                            onClick={() => setExpandedUsers(prev => ({ ...prev, [user.user_id]: !prev[user.user_id] }))}
-                                            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', color: '#555', padding: '2px 8px' }}
-                                        >
-                                            {expandedUsers[user.user_id] === false ? '▼' : '▲'}
-                                        </button>
-                                    )}
-                                </div>
-                                
-                                {expandedUsers[user.user_id] !== false && user.payload && user.payload.some(p => typeof p === 'object' && p.filename) && (
-                                    <div style={{ paddingLeft: '10px' }}>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 150px', fontWeight: 'bold', color: '#555', fontSize: '0.9rem' }}>
-                                                <div>Filename</div>
-                                                <div>Size</div>
-                                                <div style={{ textAlign: 'center' }}>Action</div>
-                                            </div>
-                                            {user.payload.filter(p => typeof p === 'object' && p.filename).map((item, pIndex) => (
-                                                <div key={pIndex} style={{ display: 'grid', gridTemplateColumns: '1fr 120px 150px', alignItems: 'center', padding: '5px 0', borderBottom: '1px dashed #eee', color: '#333' }}>
-                                                    <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                        {item.filename}
-                                                    </div>
-                                                    <div>
-                                                    {/* {item.filesize ? (item.filesize / 1024).toFixed(2) + ' KB' : '0 KB'} */}
-                                                    {item.filesize ?? item.filesize}
-                                                    </div>
-                                                    <div style={{ display: 'flex', flexDirection: 'row', gap: '5px',justifyContent:'center', alignContent:'center'}}>
-                                                        {/* <button style={{ padding: '5px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', backgroundColor: '#eee', border: '1px solid #ccc', borderRadius: '4px' }}>
-                                                            <span style={{ fontWeight: 'bold' }}>Download</span>
-                                                        </button> */}
-                                                        {user.temp_identity != MyTempId && <input type='checkbox' value={item.filename}></input>}
-
-                                                        {/* {user.user_id==} */}
-
-                                                        {user.temp_identity != MyTempId ? 
-                                                            (
-                                                                <button onClick={(e)=>{
-                                                                    DownloadSingleFile({
-                                                                        ws_ref: ws_ref,
-                                                                        filename: item.filename,
-                                                                        file_id: item.file_id,
-                                                                        host_username: user.username,
-                                                                        file_owner_id: user.user_id,
-                                                                        filesize: item.real_filesize,
-                                                                        set_transfer_log_data,
-                                                                        transfer_log_data_ref
-                                                                    },
-                                                                    )
-                                                                }} style={{ padding: '5px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', backgroundColor: '#eee', border: '1px solid #ccc', borderRadius: '4px' }}>
-                                                                    <span style={{ fontWeight: 'bold' }}>Down</span>
-                                                                </button>
-                                                            )
-                                                            :
-                                                            <button onClick={()=>drop_file_from_pool(pIndex, item.filename, item.real_filesize, item.file_id)}>
-                                                                <span style={{ fontWeight: 'bold' }}>Drop</span>
-                                                            </button>
-                                                        }
-                                                        
-
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        ))}
+                    <div className={styles.topBar}>
+                        <div className={styles.connBadge}>
+                            <span className={styles.connDot} />
+                            {conns_counter ?? 0} connected
+                        </div>
+                        <div className={styles.actions}>
+                            <button className={styles.btnPrimary} onClick={pickFile}>Share file</button>
+                            {/* <button className={styles.btnDanger} onClick={eraseFirstFileFromDisk}>Delete First</button> */}
+                        </div>
                     </div>
 
-                    <button onClick={pickFile}>Pick Files</button>
-                    <button onClick={eraseFirstFileFromDisk}>Delete First File</button>
-                    <Transfer_log transfer_log_data={transfer_log_data}></Transfer_log>
+                    <div className={styles.userList}>
+                        {users_ws_conn_info && [...users_ws_conn_info].sort((a, b) => (a.temp_identity == MyTempId ? -1 : b.temp_identity == MyTempId ? 1 : 0)).map((user, uIndex) => {
+                            const isMe = user.temp_identity == MyTempId
+                            const hasFiles = user.payload && user.payload.some(p => typeof p === 'object' && p.filename)
+                            return (
+                                <div key={user.user_id + uIndex} className={`${styles.userCard} ${isMe ? styles.userCardMe : ''}`}>
+                                    <div className={styles.userHeader}>
+                                        <div>
+                                            <span className={styles.username}>{user.username}</span>
+                                            {isMe && <span className={styles.meTag}>You</span>}
+                                        </div>
+                                        {hasFiles && (
+                                            <button
+                                                onClick={() => setExpandedUsers(prev => ({ ...prev, [user.user_id]: !prev[user.user_id] }))}
+                                                className={styles.toggleBtn}
+                                            >
+                                                {expandedUsers[user.user_id] === false ? '▶ Show' : '▼ Hide'}
+                                            </button>
+                                        )}
+                                    </div>
 
+                                    {expandedUsers[user.user_id] !== false && hasFiles ? (
+                                        <div className={styles.fileTable}>
+                                            <div className={styles.fileHeader}>
+                                                <div>Filename</div>
+                                                <div className={styles.colSize}>Size</div>
+                                                <div className={styles.colAction}>Action</div>
+                                            </div>
+                                            {user.payload.filter(p => typeof p === 'object' && p.filename).map((item, pIndex) => {
+                                                const isSelected = selectedFiles[user.user_id]?.has(item.file_id) ?? false
+                                                return (
+                                                <div key={pIndex} className={styles.fileRow}>
+                                                    <div className={styles.fileName}>{item.filename}</div>
+                                                    <div className={styles.fileSize}>{item.filesize ?? item.filesize}</div>
+                                                    <div className={styles.fileActions}>
+                                                        {!isMe && <input
+                                                            type='checkbox'
+                                                            checked={isSelected}
+                                                            onChange={() => {
+                                                                setSelectedFiles(prev => {
+                                                                    const userSet = new Set(prev[user.user_id] ?? [])
+                                                                    if (userSet.has(item.file_id)) userSet.delete(item.file_id)
+                                                                    else userSet.add(item.file_id)
+                                                                    return { ...prev, [user.user_id]: userSet }
+                                                                })
+                                                            }}
+                                                            className={styles.checkbox}
+                                                        />}
+                                                        {!isMe ? (
+                                                            <button
+                                                                className={styles.btnDown}
+                                                                onClick={() => {
+                                                                    DownloadSingleFile({
+                                                                        ws_ref, filename: item.filename, file_id: item.file_id,
+                                                                        host_username: user.username, file_owner_id: user.user_id,
+                                                                        filesize: item.real_filesize, set_transfer_log_data,
+                                                                        transfer_log_data_ref, set_ongoing_transfer_count
+                                                                    })
+                                                                }}
+                                                            >
+                                                                Download
+                                                            </button>
+                                                        ) : (
+                                                            <button
+                                                                className={styles.btnDrop}
+                                                                onClick={() => drop_file_from_pool(pIndex, item.filename, item.real_filesize, item.file_id)}
+                                                            >
+                                                                Drop
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                )
+                                            })}
+                                            {!isMe && (selectedFiles[user.user_id]?.size ?? 0) > 0 && (
+                                                <div className={styles.downloadSelectedRow}>
+                                                    <button
+                                                        className={styles.btnDownloadSelected}
+                                                        onClick={() => {
+                                                            const selected = Array.from(selectedFiles[user.user_id] ?? [])
+                                                            const files = user.payload
+                                                                .filter(p => typeof p === 'object' && selected.includes(p.file_id))
+                                                                .map(p => ({ file_id: p.file_id, filename: p.filename, filesize: p.real_filesize }))
+                                                            DownloadMultipleFiles({
+                                                                ws_ref,
+                                                                host_username: user.username,
+                                                                file_owner_id: user.user_id,
+                                                                set_transfer_log_data,
+                                                                transfer_log_data_ref,
+                                                                set_ongoing_transfer_count,
+                                                                files
+                                                            })
+                                                        }}
+                                                    >
+                                                        Download selected ({selectedFiles[user.user_id]?.size ?? 0})
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : !hasFiles ? (
+                                        <div className={styles.noFiles}>No files shared</div>
+                                    ) : null}
+                                </div>
+                            )
+                        })}
+                    </div>
+
+                    <Transfer_log transfer_log_data={transfer_log_data} ongoing_transfer_count={ongoing_transfer_count} set_ongoing_transfer_count={set_ongoing_transfer_count} />
                 </>
-
             )}
-
-            
-           
-{/* 
-            <div>
-                {fileLs.map((file, index) => (
-                    <div key={index}>{file.name}</div>
-                ))}
-            </div> */}
-        </>
+        </div>
     )
 }
 

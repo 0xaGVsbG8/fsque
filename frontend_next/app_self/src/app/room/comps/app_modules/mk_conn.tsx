@@ -150,7 +150,7 @@ const launch = ({ws_ref, set_conns_counter, set_ongoing_transfer_count, set_user
 
     ws.onmessage = (msg) => {
         const data = JSON.parse(msg.data)
-        // console.log(data)
+        console.log(data)
         if(data){
             if(data.connected_users){
                 set_conns_counter(data.connected_users)
@@ -169,121 +169,17 @@ const launch = ({ws_ref, set_conns_counter, set_ongoing_transfer_count, set_user
             
             if (data.incoming_transfer && data.TRANSFER_ACCESS_TOKEN && data.role == 'HOST') {
 
+                console.log(fileLsRefForTransfer.current)
+
                 if(!fileLsRefForTransfer.current) return
-
-                // const target_file = fileLsRefForTransfer.current.filter((item)=>item.file_id==data.target)
-                // console.log(target_file, 'd?')
-
-                // console.log(target_file, '???')
+                console.log('yoyo')
 
                 const TRANSFER_ACCESS_TOKEN = data.TRANSFER_ACCESS_TOKEN
-                // console.log('??')
-                UploadSingleFile({fileLsRefForTransfer: fileLsRefForTransfer, target_id: data.target, TRANSFER_ACCESS_TOKEN: TRANSFER_ACCESS_TOKEN, set_transfer_log_data, transfer_log_data_ref})
-                return 
-
-                console.log("Transfer accepted (HOST):", TRANSFER_ACCESS_TOKEN)
-
-                if(opened_single_file_transfer) return
-                opened_single_file_transfer = true
-
-                setTimeout(() => {
-                    opened_single_file_transfer = false
-                }, 10);
-
-                const transfer_ws = new WebSocket(base_ws + '/make-transfer' + `?TRANSFER_ACCESS_TOKEN=${TRANSFER_ACCESS_TOKEN}`)
-
-                //HOST SIDE
-
-                transfer_ws.onopen = () => {
-                    set_ongoing_transfer_count((prev)=>{return prev+1})
-                    // transfer_ws.send(JSON.stringify({'transfer_ready':true, 'role': data.role}))
-                }
-
-                transfer_ws.onmessage = async(msg) => {
-                    // console.log(msg)
-                    try{
-                        // console.log(target_file)
-                        const here_data = JSON.parse(msg.data)
-                        console.log(here_data)
-
-                        if(here_data.transfer_canceled_by){
-                            console.log('User canceled transfer!')
-                            
-                            transfer_log_data_ref.current = transfer_log_data_ref.current!.map(item =>
-                                item.file_id === target_file[0].file_id && item.editable
-                                    ? { ...item, 'perc': '100.00' , editable: false, extra_msg: 'Canceled by client'} 
-                                    : item
-                            )
-                            set_transfer_log_data(transfer_log_data_ref.current)
-
-
-
-                        }
-
-                        if(here_data.begin_upload){
-                            console.log('beggining upload, sending chunks...')
-
-                            const cancel_behaviour_func = () => {
-                                console.log('canceling upload')
-                                transfer_ws.send(JSON.stringify({'transfer_canceled':'HOST'}))
-                                // transfer_ws.close()
-                            }
-
-                            const new_record:transfer_log_data_props = {
-                                'user_id': '2',
-                                'file_id':target_file[0].file_id,
-                                'username': here_data.username,
-                                'filename': target_file[0].file.name,
-                                'transfer_type': 'upload',
-                                'perc': '0.00',
-                                editable: true,
-                                cancel_behaviour: ()=>{cancel_behaviour_func()}
-                            }
-                            transfer_log_data_ref.current = [...transfer_log_data_ref.current ?? [], new_record ]
-    
-    
-
-                            await sendFileInChunks({
-                                file: target_file[0].file,
-                                file_id: target_file[0].file_id,
-                                ws: transfer_ws,
-                                set_transfer_log_data: set_transfer_log_data,
-                                transfer_log_data_ref: transfer_log_data_ref
-                            })
-                            // await sendFileInChunks({file: target_file[0].file, ws: transfer_ws})
-
-                            transfer_ws.send(JSON.stringify({'transfer_complete':true}))
-
-
-
-
-                            transfer_log_data_ref.current = transfer_log_data_ref.current!.map(item =>
-                                item.file_id === target_file[0].file_id && item.editable
-                                    ? { ...item, 'perc': '100.00' , editable: false}
-                                    : item
-                            )
-
-                            set_transfer_log_data(transfer_log_data_ref.current)
-                    
-                            console.log('transfer complete')
-                            transfer_ws.close()
-                            set_ongoing_transfer_count((prev)=>{return prev-1})
-                        }
-                    }catch(err){
-                        console.log(err,)
-                    }
-         
-                    // console.log(data)
-                }
-
-                
-                transfer_ws.onclose = () => {
-                    console.log('conn lose')
+                data.upload_type == 'single' && UploadSingleFile({fileLsRefForTransfer: fileLsRefForTransfer, target_id: data.target, TRANSFER_ACCESS_TOKEN: TRANSFER_ACCESS_TOKEN, set_transfer_log_data, transfer_log_data_ref, set_ongoing_transfer_count})
+                data.upload_type == 'multiple' && 2
                 }
 
                 // if(ws_ref.current) ws_ref.current.removeEventListener("message", handle_transfer)
-
-            }
 
 
         }

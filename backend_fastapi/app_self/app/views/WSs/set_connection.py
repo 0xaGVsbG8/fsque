@@ -18,6 +18,20 @@ router = APIRouter()
 
 
 
+USERS_PAYLOAD = {}
+
+#STRUCTURE
+# [access_token: {
+#     target: filename
+#     HOST: id
+#     client:id
+# }]
+
+SINGLE_FILE_TRANSFER_ROOMS = {}
+MULTIPLE_FILE_TRANSFER_ROOMS = {}
+
+
+
 def validate_token_access(ROOM_ID: str, USER_ID: str):
     
     db = next(get_db())
@@ -40,7 +54,6 @@ def validate_token_access(ROOM_ID: str, USER_ID: str):
 
 
 #room_id: [{username: 2, user_id:2,payload:xd}]
-USERS_PAYLOAD = {}
 
 
 def register_user_in_room(room_id:str, USERNAME: str, USER_ID:str, temp_user_id: str):
@@ -172,14 +185,7 @@ def update_users_payload(room_id, user_id, payload):
         
 
 
-#STRUCTURE
-# [access_token: {
-#     target: filename
-#     HOST: id
-#     client:id
-# }]
 
-SINGLE_FILE_TRANSFER_ROOMS = {}
 
 
 
@@ -221,6 +227,48 @@ async def websocket_endpoint(ws: WebSocket):
                                 await broadcast_payloads(ROOM_ID, USER_ID)
 
                                 
+                        if data.get('user_multiple_file_transfer_request'):
+                            print('users ask for multiple files transfer')
+                            userdata = data['user_multiple_file_transfer_request'].copy()
+                            
+                            if ROOM_CONNECTIONS[ROOM_ID].get(userdata['files_owner_id']) and userdata.get('files_owner_id')  :
+                                print('HOST LOCATED')
+                                HOST: WebSocket = ROOM_CONNECTIONS[ROOM_ID].get(userdata['files_owner_id'])
+                                TRANSFER_ACCESS_TOKEN = str(uuid.uuid4())
+                                TARGETS = userdata['files_id']
+                                print(TARGETS)
+                                
+                                MULTIPLE_FILE_TRANSFER_ROOMS[TRANSFER_ACCESS_TOKEN] = {
+                                    # 'target': userdata['filename'],
+                                    'targets': TARGETS,
+                                    'HOST': userdata['files_owner_id'],
+                                    'client': USER_ID,
+                                    'room_id': ROOM_ID,
+                                    # 'filesize': userdata['filesize'],
+                                    'files_id': userdata['files_id'],
+                                    'client_username': userdata['client_username']
+                                }
+                            
+                                await HOST.send_json({
+                                    'incoming_transfer': 'user wants to downlaod your files',
+                                    'role': 'host',
+                                    'TRANSFER_ACCESS_TOKEN': TRANSFER_ACCESS_TOKEN,
+                                    'targets': TARGETS,
+                                    'upload_type': 'multiple'
+                                })
+                                
+                                
+                                await ws.send_json({
+                                    'incoming_transfer': 'HOST located',
+                                    'role': 'client',
+                                    'TRANSFER_ACCESS_TOKEN': TRANSFER_ACCESS_TOKEN,
+                                    'targets': TARGETS
+                                })
+                                
+                                
+                                
+                                
+                                
                         if data.get('user_single_file_transfer_request'):
                             userdata = data['user_single_file_transfer_request']
                             userdata:dict
@@ -256,7 +304,8 @@ async def websocket_endpoint(ws: WebSocket):
                                         'incoming_transfer': 'user wants to download your files!',
                                         'role': 'HOST',
                                         'TRANSFER_ACCESS_TOKEN': TRANSFER_ACCESS_TOKEN,
-                                        'target': TARGET
+                                        'target': TARGET,
+                                        'upload_type': 'single'
                                     })
 
                                     await ws.send_json({
@@ -268,6 +317,7 @@ async def websocket_endpoint(ws: WebSocket):
                                     
                                     print('Room data prepared!')
                                     
+
                                     
                                     # print(SINGLE_FILE_TRANSFER_ROOMS, 'yopyo')
                             # HOST = ROOM_CONNECTIONS[[ROOM_ID][userdata['file_owner_id']]]

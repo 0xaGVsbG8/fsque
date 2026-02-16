@@ -29,6 +29,7 @@ export type UploadSingleFileProps = transfer_log_data_utils & {
     fileLsRefForTransfer: React.MutableRefObject<ModifiedFile[]|null>
     target_id: string
     TRANSFER_ACCESS_TOKEN: string
+    set_ongoing_transfer_count: React.Dispatch<React.SetStateAction<number>>
 }
 
 
@@ -127,7 +128,7 @@ export async function sendFileInChunks({file, ws, transfer_log_data_ref, set_tra
 
 
 
-const UploadSingleFile = ({fileLsRefForTransfer, target_id, TRANSFER_ACCESS_TOKEN, set_transfer_log_data, transfer_log_data_ref}:UploadSingleFileProps) => {
+const UploadSingleFile = ({fileLsRefForTransfer, target_id, TRANSFER_ACCESS_TOKEN, set_transfer_log_data, transfer_log_data_ref, set_ongoing_transfer_count}:UploadSingleFileProps) => {
 
     console.log('upload file??')
 
@@ -145,26 +146,12 @@ const UploadSingleFile = ({fileLsRefForTransfer, target_id, TRANSFER_ACCESS_TOKE
     const upload_ws = new WebSocket(base_ws + '/make-transfer' + `?TRANSFER_ACCESS_TOKEN=${TRANSFER_ACCESS_TOKEN}`)
     upload_ws.onopen = () => {
         console.log('upload transfer opened')
-        // set_ongoing_transfer_count((prev)=>{return prev+1})
-        // transfer_ws.send(JSON.stringify({'transfer_ready':true, 'role': data.role}))
+        set_ongoing_transfer_count(prev => prev + 1)
     }
 
     const cancel_behaviour_func = () => {
-        // const hide_me = () => {
-        //     transfer_log_data_ref.current = transfer_log_data_ref.current!.filter((item)=>item.transaction_id!=TRANSFER_ACCESS_TOKEN)
-        //     set_transfer_log_data(transfer_log_data_ref.current)
-        // }
-
-        // console.log('Canceling upload')
-        // transfer_log_data_ref.current = transfer_log_data_ref.current!.map(item =>
-        //     item.transaction_id == TRANSFER_ACCESS_TOKEN
-        //         ? { ...item, extra_msg: ' (Canceled by me)', cancel_behaviour: ()=>hide_me(), button_text: 'Clear'}
-        //         : item
-        // )
-        // u
-        // set_transfer_log_data(transfer_log_data_ref.current)
         update_perc_value({set_transfer_log_data, transfer_log_data_ref, transaction_id: TRANSFER_ACCESS_TOKEN,extra_msg: ' (Canceled by me)', confirm_hide: true, button_text: 'Clear'})
-
+        set_ongoing_transfer_count(prev => prev - 1)
         upload_ws.close()
     }
 
@@ -179,7 +166,7 @@ const UploadSingleFile = ({fileLsRefForTransfer, target_id, TRANSFER_ACCESS_TOKE
             if(data.transfer_canceled_by){
                 console.log('client canceled downlod!')
                 update_perc_value({set_transfer_log_data, transfer_log_data_ref, transaction_id: TRANSFER_ACCESS_TOKEN, extra_msg: '(Canceled by client)', confirm_hide: true, button_text: 'Clear'})
-
+                set_ongoing_transfer_count(prev => prev - 1)
                 upload_ws.close()
             }
 
@@ -215,6 +202,9 @@ const UploadSingleFile = ({fileLsRefForTransfer, target_id, TRANSFER_ACCESS_TOKE
                 })
 
                 console.log('Upload done')
+
+                update_perc_value({set_transfer_log_data, transfer_log_data_ref, transaction_id: TRANSFER_ACCESS_TOKEN, extra_msg: '(Done)', confirm_hide: true, button_text: 'Clear'})
+                set_ongoing_transfer_count(prev => prev - 1)
 
                 upload_ws.send(JSON.stringify({'transfer_complete':true}))
                 upload_ws.close()

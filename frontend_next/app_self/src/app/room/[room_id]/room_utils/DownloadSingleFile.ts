@@ -15,6 +15,7 @@ export type DownloadSingleFileProps = transfer_log_data_utils & {
     host_username: string
     file_owner_id: string
     filesize: number
+    set_ongoing_transfer_count: React.Dispatch<React.SetStateAction<number>>
 }
 
 type incoming_transfer_props = {
@@ -33,6 +34,7 @@ type launch_client_transfer_props = transfer_log_data_utils &{
     writable: FileSystemWritableFileStream
     filename: string
     file_owner: string
+    set_ongoing_transfer_count: React.Dispatch<React.SetStateAction<number>>
 }
 
 
@@ -42,19 +44,22 @@ const launch_client_download = async({
     filename,
     file_owner,
     set_transfer_log_data,
-    transfer_log_data_ref
+    transfer_log_data_ref,
+    set_ongoing_transfer_count
 }:launch_client_transfer_props) => {
 
     const transfer_ws = new WebSocket(base_ws + '/make-transfer' + `?TRANSFER_ACCESS_TOKEN=${TRANSFER_ACCESS_TOKEN}`)
 
     const handleClose = (extra_msg: string) => {
         update_perc_value({set_transfer_log_data, transfer_log_data_ref, transaction_id: TRANSFER_ACCESS_TOKEN, extra_msg, confirm_hide: true, button_text: 'Clear'})
+        set_ongoing_transfer_count(prev => prev - 1)
         transfer_ws.close()
     }
 
     transfer_ws.onopen = () => {
 
         console.log('transfer opened!')
+        set_ongoing_transfer_count(prev => prev + 1)
         transfer_ws.send(JSON.stringify({'ready_for_transfer':true, 'role': 'client'}))
 
         const new_record: transfer_log_data_props = {
@@ -89,7 +94,7 @@ const launch_client_download = async({
         // console.log(message)
         if (message.data instanceof Blob) {
             // console.log("chunk received")
-            // await writable.write(message.data)
+            await writable.write(message.data)
             wait_for_client_response_while_uploading &&  transfer_ws.send(JSON.stringify({'received_chunk':true})) 
         } 
         else{
@@ -100,6 +105,8 @@ const launch_client_download = async({
                 console.log('Download complete!')
                 writable.close()
                 transfer_ws.close()
+                update_perc_value({set_transfer_log_data, transfer_log_data_ref, transaction_id: TRANSFER_ACCESS_TOKEN, extra_msg: '(Done)', confirm_hide: true, button_text: 'Clear'})
+                set_ongoing_transfer_count(prev => prev - 1)
             }
 
             if(data.upload_progress){
@@ -123,7 +130,7 @@ const launch_client_download = async({
 
   
 
-const DownloadSingleFile = async ({ws_ref, filename, file_id, host_username, file_owner_id, filesize, set_transfer_log_data, transfer_log_data_ref}:  DownloadSingleFileProps) => {
+const DownloadSingleFile = async ({ws_ref, filename, file_id, host_username, file_owner_id, filesize, set_transfer_log_data, transfer_log_data_ref, set_ongoing_transfer_count}:  DownloadSingleFileProps) => {
 
     if (!('showSaveFilePicker' in window) || !ws_ref.current) return
     try {
@@ -151,7 +158,7 @@ const DownloadSingleFile = async ({ws_ref, filename, file_id, host_username, fil
                 const TARGET = data.target
                 console.log('Transfer accepted!')
                 ws_ref.current!.removeEventListener('message', listenForRoomData)
-                launch_client_download({TRANSFER_ACCESS_TOKEN, writable,filename, file_owner: host_username, set_transfer_log_data, transfer_log_data_ref})
+                launch_client_download({TRANSFER_ACCESS_TOKEN, writable, filename, file_owner: host_username, set_transfer_log_data, transfer_log_data_ref, set_ongoing_transfer_count})
                 
             }
         }

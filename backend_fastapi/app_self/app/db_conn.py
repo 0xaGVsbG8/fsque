@@ -8,8 +8,9 @@ import sys, time
 DATABASE_URL = "postgresql+psycopg2://postgres:postgres@host.docker.internal:9003/datanestDB?client_encoding=utf8"
 
 #FOR DOCKER USAGE WITH COMPOSE
-DATABASE_URL = "mysql+pymysql://root@localhost/fsque"
-
+DATABASE_URL = "mysql+pymysql://root@fsque_db/fsque"
+# DATABASE_URL = "mysql+pymysql://root@localhost/fsque"
+# DATABASE_URL = "mysql+pymysql://root@host.docker.internal:9003/fsque"
 
 #FOR REGULAR USAGE
 # DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/datanestDB"

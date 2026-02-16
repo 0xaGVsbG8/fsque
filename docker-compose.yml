@@ -1,0 +1,66 @@
+services:
+
+  db:
+    build:
+      context: ./sql_database
+      dockerfile: dockerfile
+    container_name: fsque_db
+    expose:
+      - "3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    networks:
+      - fsque_net
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend_fastapi
+      dockerfile: Dockerfile
+    container_name: fastapi_backend
+    expose:
+      - "9010"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - fsque_net
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend_next
+      dockerfile: Dockerfile
+    container_name: next_frontend
+    expose:
+      - "3000"
+    networks:
+      - fsque_net
+    restart: unless-stopped
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: dockerfile
+    container_name: fsque_nginx
+    ports:
+      - "9000:9000"
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - fsque_net
+    restart: unless-stopped
+
+volumes:
+  db_data:
+
+networks:
+  fsque_net:
+    driver: bridge

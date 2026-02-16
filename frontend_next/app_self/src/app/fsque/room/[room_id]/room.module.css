@@ -261,6 +261,10 @@
 
 .colAction {
     text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
 }
 
 @media (max-width: 600px) {

@@ -1,6 +1,6 @@
 import { base_ws, wait_for_client_response_while_uploading } from "../../../app_conf"
 import { transfer_log_data_props } from "../../../types"
-import { ModifiedFile, transfer_log_data_utils, sendFileInChunks, update_perc_value } from "./upload_file"
+import { ModifiedFile, transfer_log_data_utils, sendFileInChunks, update_perc_value } from "./upload_single_file"
 
 let opened_multiple_file_transfer: boolean = false
 
@@ -57,12 +57,18 @@ const UploadMultipleFiles = ({
     const upload_ws = new WebSocket(base_ws + '/multiple-files-transfer/' + `?TRANSFER_ACCESS_TOKEN=${TRANSFER_ACCESS_TOKEN}`)
     let record_created = false
 
+    const preventClose = (e: BeforeUnloadEvent) => { e.preventDefault() }
+
     upload_ws.onopen = () => {
         console.log('multiple upload transfer opened')
+        window.addEventListener('beforeunload', preventClose)
         set_ongoing_transfer_count(prev => prev + 1)
+        const joinEffect = new Audio('/fsque/assets/join.mp3')
+        joinEffect.play()
     }
 
     const cancel_behaviour_func = () => {
+        window.removeEventListener('beforeunload', preventClose)
         update_perc_value({ set_transfer_log_data, transfer_log_data_ref, transaction_id: TRANSFER_ACCESS_TOKEN, extra_msg: ' (Canceled by me)', confirm_hide: true, button_text: 'Clear' })
         set_ongoing_transfer_count(prev => prev - 1)
         upload_ws.close()
@@ -75,6 +81,7 @@ const UploadMultipleFiles = ({
 
             if (data.transfer_canceled_by) {
                 console.log('client canceled multi-download!')
+                window.removeEventListener('beforeunload', preventClose)
                 update_perc_value({ set_transfer_log_data, transfer_log_data_ref, transaction_id: TRANSFER_ACCESS_TOKEN, extra_msg: '(Canceled by client)', confirm_hide: true, button_text: 'Clear' })
                 set_ongoing_transfer_count(prev => prev - 1)
                 upload_ws.close()
@@ -148,6 +155,9 @@ const UploadMultipleFiles = ({
 
             if (data.all_uploads_complete) {
                 console.log('All files uploaded!')
+                window.removeEventListener('beforeunload', preventClose)
+                const joinEffect = new Audio('/fsque/assets/done.mp3')
+                joinEffect.play()
                 update_perc_value({ set_transfer_log_data, transfer_log_data_ref, transaction_id: TRANSFER_ACCESS_TOKEN, extra_msg: '(Done)', confirm_hide: true, button_text: 'Clear' })
                 set_ongoing_transfer_count(prev => prev - 1)
                 upload_ws.close()

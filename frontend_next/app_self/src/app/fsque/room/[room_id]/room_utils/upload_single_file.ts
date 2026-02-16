@@ -56,12 +56,14 @@ export const update_perc_value = ({
     filename
 }:update_perc_value) => {
 
+    if (!transfer_log_data_ref.current) return
+
     const hide_me = () => {
         transfer_log_data_ref.current = transfer_log_data_ref.current!.filter((item)=>item.transaction_id!=transaction_id)
         set_transfer_log_data(transfer_log_data_ref.current)
     }
 
-    transfer_log_data_ref.current = transfer_log_data_ref.current!.map(item =>
+    transfer_log_data_ref.current = transfer_log_data_ref.current.map(item =>
         item.transaction_id == transaction_id
             ? { ...item, 'perc': perc ?? item.perc, button_text, extra_msg: extra_msg ?? item.extra_msg, filename: filename ?? item.filename, cancel_behaviour: ()=> {confirm_hide ? hide_me() :( item?.cancel_behaviour ?   item?.cancel_behaviour():  null)}}
             : item
@@ -146,12 +148,19 @@ const UploadSingleFile = ({fileLsRefForTransfer, target_id, TRANSFER_ACCESS_TOKE
     }, 10);
 
     const upload_ws = new WebSocket(base_ws + '/single-file-transfer/' + `?TRANSFER_ACCESS_TOKEN=${TRANSFER_ACCESS_TOKEN}`)
+
+    const preventClose = (e: BeforeUnloadEvent) => { e.preventDefault() }
+
     upload_ws.onopen = () => {
         console.log('upload transfer opened')
+        window.addEventListener('beforeunload', preventClose)
         set_ongoing_transfer_count(prev => prev + 1)
+        const joinEffect = new Audio('/fsque/assets/join.mp3')
+        joinEffect.play()
     }
 
     const cancel_behaviour_func = () => {
+        window.removeEventListener('beforeunload', preventClose)
         update_perc_value({set_transfer_log_data, transfer_log_data_ref, transaction_id: TRANSFER_ACCESS_TOKEN,extra_msg: ' (Canceled by me)', confirm_hide: true, button_text: 'Clear'})
         set_ongoing_transfer_count(prev => prev - 1)
         upload_ws.close()
@@ -167,6 +176,7 @@ const UploadSingleFile = ({fileLsRefForTransfer, target_id, TRANSFER_ACCESS_TOKE
 
             if(data.transfer_canceled_by){
                 console.log('client canceled downlod!')
+                window.removeEventListener('beforeunload', preventClose)
                 update_perc_value({set_transfer_log_data, transfer_log_data_ref, transaction_id: TRANSFER_ACCESS_TOKEN, extra_msg: '(Canceled by client)', confirm_hide: true, button_text: 'Clear'})
                 set_ongoing_transfer_count(prev => prev - 1)
                 upload_ws.close()
@@ -204,6 +214,10 @@ const UploadSingleFile = ({fileLsRefForTransfer, target_id, TRANSFER_ACCESS_TOKE
                 })
 
                 console.log('Upload done')
+                window.removeEventListener('beforeunload', preventClose)
+
+                const joinEffect = new Audio('/fsque/assets/done.mp3')
+                joinEffect.play()
 
                 update_perc_value({set_transfer_log_data, transfer_log_data_ref, transaction_id: TRANSFER_ACCESS_TOKEN, extra_msg: '(Done)', confirm_hide: true, button_text: 'Clear'})
                 set_ongoing_transfer_count(prev => prev - 1)

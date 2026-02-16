@@ -2,7 +2,7 @@ import get_username from "../../../modules/get_username"
 import { transfer_log_data_utils } from "./DownloadSingleFile"
 import { base_ws, wait_for_client_response_while_uploading } from "../../../app_conf"
 import { transfer_log_data_props } from "../../../types"
-import { update_perc_value } from "./upload_file"
+import { update_perc_value } from "./upload_single_file"
 
 export type DownloadMultipleFilesEntry = {
     file_id: string
@@ -52,7 +52,10 @@ const launch_client_download = async ({
     let current_file_id: string = ''
     let record_created = false
 
+    const preventClose = (e: BeforeUnloadEvent) => { e.preventDefault() }
+
     const handleClose = (extra_msg: string) => {
+        window.removeEventListener('beforeunload', preventClose)
         update_perc_value({ set_transfer_log_data, transfer_log_data_ref, transaction_id: TRANSFER_ACCESS_TOKEN, extra_msg, confirm_hide: true, button_text: 'Clear' })
         set_ongoing_transfer_count(prev => prev - 1)
         transfer_ws.close()
@@ -60,6 +63,9 @@ const launch_client_download = async ({
 
     transfer_ws.onopen = () => {
         console.log('multiple download transfer opened!')
+        window.addEventListener('beforeunload', preventClose)
+        const joinEffect = new Audio('/fsque/assets/join.mp3')
+        joinEffect.play()
         set_ongoing_transfer_count(prev => prev + 1)
         transfer_ws.send(JSON.stringify({ ready_for_transfer: true, role: 'client' }))
     }
@@ -150,6 +156,9 @@ const launch_client_download = async ({
 
             if (data.all_transfers_complete) {
                 console.log('All files downloaded!')
+                window.removeEventListener('beforeunload', preventClose)
+                const joinEffect = new Audio('/fsque/assets/done.mp3')
+                joinEffect.play()
                 update_perc_value({ set_transfer_log_data, transfer_log_data_ref, transaction_id: TRANSFER_ACCESS_TOKEN, extra_msg: '(Done)', confirm_hide: true, button_text: 'Clear' })
                 set_ongoing_transfer_count(prev => prev - 1)
                 transfer_ws.close()

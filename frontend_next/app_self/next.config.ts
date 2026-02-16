@@ -23,6 +23,15 @@ const nextConfig: NextConfig = {
     'https://woodruf-webkit.webhop.me',
     'https://zst-href.rest'
   ],
+
+  compiler: process.env.NODE_ENV === "production"
+  ? {
+      removeConsole: {
+        exclude: ["error", "warn"], 
+      },
+    }
+: undefined,
+
 };
 
 export default nextConfig;

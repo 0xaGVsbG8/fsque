@@ -1,7 +1,7 @@
 import { base_ws, wait_for_client_response_while_uploading } from "../../../app_conf"
 import get_username from "../../../modules/get_username"
 import { transfer_log_data_props } from "../../../types"
-import { update_perc_value } from "./upload_file"
+import { update_perc_value } from "./upload_single_file"
 
 export type transfer_log_data_utils = {
     set_transfer_log_data: React.Dispatch<React.SetStateAction<transfer_log_data_props[]|null>>
@@ -50,7 +50,10 @@ const launch_client_download = async({
 
     const transfer_ws = new WebSocket(base_ws + '/single-file-transfer/' + `?TRANSFER_ACCESS_TOKEN=${TRANSFER_ACCESS_TOKEN}`)
 
+    const preventClose = (e: BeforeUnloadEvent) => { e.preventDefault() }
+
     const handleClose = (extra_msg: string) => {
+        window.removeEventListener('beforeunload', preventClose)
         update_perc_value({set_transfer_log_data, transfer_log_data_ref, transaction_id: TRANSFER_ACCESS_TOKEN, extra_msg, confirm_hide: true, button_text: 'Clear'})
         set_ongoing_transfer_count(prev => prev - 1)
         transfer_ws.close()
@@ -59,6 +62,9 @@ const launch_client_download = async({
     transfer_ws.onopen = () => {
 
         console.log('transfer opened!')
+        window.addEventListener('beforeunload', preventClose)
+        const joinEffect = new Audio('/fsque/assets/join.mp3')
+        joinEffect.play()
         set_ongoing_transfer_count(prev => prev + 1)
         transfer_ws.send(JSON.stringify({'ready_for_transfer':true, 'role': 'client'}))
 
@@ -103,6 +109,9 @@ const launch_client_download = async({
 
             if(data.transfer_complete){
                 console.log('Download complete!')
+                window.removeEventListener('beforeunload', preventClose)
+                const joinEffect = new Audio('/fsque/assets/done.mp3')
+                joinEffect.play()
                 writable.close()
                 transfer_ws.close()
                 update_perc_value({set_transfer_log_data, transfer_log_data_ref, transaction_id: TRANSFER_ACCESS_TOKEN, extra_msg: '(Done)', confirm_hide: true, button_text: 'Clear'})

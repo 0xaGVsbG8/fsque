@@ -41,7 +41,7 @@ services:
     env_file:
       - ./.env
     expose:
-      - "3000"
+      - "9011"
     networks:
       - fsque_net
     restart: unless-stopped

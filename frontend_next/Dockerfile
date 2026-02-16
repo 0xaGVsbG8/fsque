@@ -10,7 +10,7 @@ COPY app_self/ .
 
 # RUN npm run build
 
-EXPOSE 3000
+EXPOSE 9011
 
 CMD ["npm", "run", "dev"]
 # CMD ["npm", "start"]

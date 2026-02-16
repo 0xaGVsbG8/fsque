@@ -49,6 +49,7 @@ class Relay:
     
             
     async def client(self):
+        PERC = '0.00'
         while True:
             try:
                 client_response = await self.CLIENT_WS.receive_json()

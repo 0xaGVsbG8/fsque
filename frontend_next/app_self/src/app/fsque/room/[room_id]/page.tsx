@@ -310,7 +310,30 @@ return (
                                             <div className={styles.fileHeader}>
                                                 <div>Filename</div>
                                                 <div className={styles.colSize}>Size</div>
-                                                <div className={styles.colAction}>Action</div>
+                                                <div className={styles.colAction}>
+                                                    Action
+                                                    {!isMe && <input
+                                                        type='checkbox'
+                                                        checked={(() => {
+                                                            const allFileIds = user.payload.filter(p => typeof p === 'object' && p.file_id).map(p => p.file_id)
+                                                            const userSelected = selectedFiles[user.user_id]
+                                                            return allFileIds.length > 0 && !!userSelected && allFileIds.every(id => userSelected.has(id))
+                                                        })()}
+                                                        onChange={() => {
+                                                            setSelectedFiles(prev => {
+                                                                const allFileIds = user.payload.filter(p => typeof p === 'object' && p.file_id).map(p => p.file_id)
+                                                                const userSet = new Set(prev[user.user_id] ?? [])
+                                                                const allSelected = allFileIds.every(id => userSet.has(id))
+                                                                if (allSelected) {
+                                                                    return { ...prev, [user.user_id]: new Set<string>() }
+                                                                } else {
+                                                                    return { ...prev, [user.user_id]: new Set(allFileIds) }
+                                                                }
+                                                            })
+                                                        }}
+                                                        className={styles.checkbox}
+                                                    />}
+                                                </div>
                                             </div>
                                             {user.payload.filter(p => typeof p === 'object' && p.filename).map((item, pIndex) => {
                                                 const isSelected = selectedFiles[user.user_id]?.has(item.file_id) ?? false

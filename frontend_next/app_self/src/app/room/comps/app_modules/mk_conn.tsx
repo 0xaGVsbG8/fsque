@@ -5,6 +5,7 @@ import { connect } from "http2"
 import { ModifiedFile } from "../../[room_id]/page"
 import { wait_for_client_response_while_uploading } from "@/app/app_conf"
 import UploadSingleFile from "../../[room_id]/room_utils/upload_file"
+import UploadMultipleFiles from "../../[room_id]/room_utils/upload_multiple_files"
 
 export type sendFileInChunks_props = transfer_log_data_utils & {
     file_id: string
@@ -176,7 +177,7 @@ const launch = ({ws_ref, set_conns_counter, set_ongoing_transfer_count, set_user
 
                 const TRANSFER_ACCESS_TOKEN = data.TRANSFER_ACCESS_TOKEN
                 data.upload_type == 'single' && UploadSingleFile({fileLsRefForTransfer: fileLsRefForTransfer, target_id: data.target, TRANSFER_ACCESS_TOKEN: TRANSFER_ACCESS_TOKEN, set_transfer_log_data, transfer_log_data_ref, set_ongoing_transfer_count})
-                data.upload_type == 'multiple' && 2
+                data.upload_type == 'multiple' && UploadMultipleFiles({fileLsRefForTransfer: fileLsRefForTransfer, target_ids: data.targets, TRANSFER_ACCESS_TOKEN: TRANSFER_ACCESS_TOKEN, set_transfer_log_data, transfer_log_data_ref, set_ongoing_transfer_count})
                 }
 
                 // if(ws_ref.current) ws_ref.current.removeEventListener("message", handle_transfer)

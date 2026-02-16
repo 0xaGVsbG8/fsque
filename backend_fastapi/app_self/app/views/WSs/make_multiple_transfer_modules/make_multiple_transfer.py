@@ -5,25 +5,20 @@ import time
 from modules.touchRoomRecord import TouchRoom
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from sqlalchemy import true
-# from ..APIs.verify_room import STASHED_ROOMS, ACCESS_TOKENS
-# from ..APIs.verify_room import STASHED_ROOMS
 from db_conn import get_db
 from views.models import room_info
 from sqlalchemy.orm import Session
 from ..set_connection import MULTIPLE_FILE_TRANSFER_ROOMS
 import asyncio
-from .utils import erase_conn_room, Relay
+from .utils import erase_conn_room, MultiRelay
 
 router = APIRouter()
-MAX_HANDSHAKE_ATTEMPTS = 10 # every second so for instance 10 attempts equals 10 seconds
-ROOM_TOUCH_INTERVAL = 10 #how often update room last activity
+MAX_HANDSHAKE_ATTEMPTS = 10
+ROOM_TOUCH_INTERVAL = 10
 
 WAIT_FOR_CLIENT_RESPONSE_WHILE_UPLOADING = True
 
 
-
-
-            
 
 
 async def hook_peer_handshake(
@@ -41,7 +36,6 @@ async def hook_peer_handshake(
                 await ws.close()
                 erase_conn_room(TRANSFER_ACCESS_TOKEN)
                 raise SystemExit('Max handshake attempts has been reached, closing connection')
-                # return
             
             CLIENT_WS = THIS_ROOM_DATA.get("CLIENT_WS")
             HOST_WS = THIS_ROOM_DATA.get("HOST_WS")
@@ -51,7 +45,7 @@ async def hook_peer_handshake(
                 await asyncio.sleep(1)
                 HANDSHAKE_ATTEMPTS += 1
             else:
-                print('Handshake confirmed')
+                print('Handshake confirmed (multiple)')
                 return CLIENT_WS, HOST_WS
                 
         except Exception as e:
@@ -68,13 +62,13 @@ async def websocket_endpoint(ws: WebSocket):
     USER_ID = ws.cookies.get("user_id")
     USERNAME = ws.cookies.get("username")
     
-    print('/here??')
+    print('/multiple-files-transfer endpoint hit')
     
     if MULTIPLE_FILE_TRANSFER_ROOMS.get(TRANSFER_ACCESS_TOKEN):
         THIS_ROOM_DATA = MULTIPLE_FILE_TRANSFER_ROOMS[TRANSFER_ACCESS_TOKEN]
         
         if USER_ID == THIS_ROOM_DATA['HOST'] or USER_ID == THIS_ROOM_DATA['client']:
-            print('user allowed!')
+            print('user allowed for multiple transfer!')
             ROLE = 'HOST' if USER_ID == THIS_ROOM_DATA['HOST'] else 'client'
             THIS_ROOM_DATA['received_chunk'] = True
 
@@ -90,28 +84,19 @@ async def websocket_endpoint(ws: WebSocket):
                 TRANSFER_ACCESS_TOKEN
             )
             
-            # TOTAL_FILESIZE = THIS_ROOM_DATA['filesize']
+            THIS_ROOM_DATA['chunk_event'] = asyncio.Event()
+            THIS_ROOM_DATA['OFFSET'] = 0
             
-            # THIS_ROOM_DATA['chunk_event'] = asyncio.Event()
-            # THIS_ROOM_DATA['OFFSET'] = 0
+            FILES_ID = THIS_ROOM_DATA['files_id']
+            ROOM_ID = THIS_ROOM_DATA['room_id']
             
-            # FILE_ID_ASSIGNED_BY_USER = THIS_ROOM_DATA['file_id']
-            
-            # ROOM_ID = THIS_ROOM_DATA['room_id']
-            
-            # await Relay(
-            #     ROLE,
-            #     ws,
-            #     THIS_ROOM_DATA,
-            #     TOTAL_FILESIZE,
-            #     FILE_ID_ASSIGNED_BY_USER,
-            #     ROOM_ID,
-            #     CLIENT_WS,
-            #     HOST_WS,
-            #     TRANSFER_ACCESS_TOKEN
-            # ).start()
-                    # ...
-                
-                #waiting for client to be ready
-                
-             
+            await MultiRelay(
+                ROLE,
+                ws,
+                THIS_ROOM_DATA,
+                ROOM_ID,
+                CLIENT_WS,
+                HOST_WS,
+                TRANSFER_ACCESS_TOKEN,
+                FILES_ID
+            ).start()

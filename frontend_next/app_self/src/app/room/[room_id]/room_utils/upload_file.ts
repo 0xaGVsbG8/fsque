@@ -42,6 +42,7 @@ type update_perc_value = transfer_log_data_utils & {
     extra_msg?: string
     confirm_hide: boolean,
     button_text?:  'Cancel' | 'Clear'
+    filename?: string
 
 }
 export const update_perc_value = ({
@@ -51,7 +52,8 @@ export const update_perc_value = ({
     perc,
     extra_msg,
     confirm_hide,
-    button_text
+    button_text,
+    filename
 }:update_perc_value) => {
 
     const hide_me = () => {
@@ -61,7 +63,7 @@ export const update_perc_value = ({
 
     transfer_log_data_ref.current = transfer_log_data_ref.current!.map(item =>
         item.transaction_id == transaction_id
-            ? { ...item, 'perc': perc ?? item.perc, button_text, extra_msg, cancel_behaviour: ()=> {confirm_hide ? hide_me() :( item?.cancel_behaviour ?   item?.cancel_behaviour():  null)}}
+            ? { ...item, 'perc': perc ?? item.perc, button_text, extra_msg: extra_msg ?? item.extra_msg, filename: filename ?? item.filename, cancel_behaviour: ()=> {confirm_hide ? hide_me() :( item?.cancel_behaviour ?   item?.cancel_behaviour():  null)}}
             : item
     )
     set_transfer_log_data(transfer_log_data_ref.current)

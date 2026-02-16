@@ -250,8 +250,8 @@ async def websocket_endpoint(ws: WebSocket):
                                 }
                             
                                 await HOST.send_json({
-                                    'incoming_transfer': 'user wants to downlaod your files',
-                                    'role': 'host',
+                                    'incoming_transfer': 'user wants to download your files',
+                                    'role': 'HOST',
                                     'TRANSFER_ACCESS_TOKEN': TRANSFER_ACCESS_TOKEN,
                                     'targets': TARGETS,
                                     'upload_type': 'multiple'

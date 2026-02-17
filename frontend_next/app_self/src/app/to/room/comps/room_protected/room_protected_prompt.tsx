@@ -4,12 +4,13 @@ import { useState } from "react";
 import styles from "./room_protected_prompt.module.css";
 
 type RoomProtectedPromptProps = {
-  onSubmit?: (password: string) => Promise<void>;
+  onSubmit?: (password: string) => Promise<boolean>;
 };
 
 export default function RoomProtectedPrompt({ onSubmit }: RoomProtectedPromptProps) {
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
   const trimmed = password.trim();
 
   const handleSubmit = async () => {
@@ -18,8 +19,12 @@ export default function RoomProtectedPrompt({ onSubmit }: RoomProtectedPromptPro
     }
 
     setIsSubmitting(true);
+    setErrorMsg("");
     try {
-      await onSubmit(trimmed);
+      const incorrect = await onSubmit(trimmed);
+      if (incorrect) {
+        setErrorMsg("Password incorrect");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -33,10 +38,15 @@ export default function RoomProtectedPrompt({ onSubmit }: RoomProtectedPromptPro
         <input
           className={styles.input}
           type="password"
+          autoComplete="off"
           value={password}
-          onChange={(event) => setPassword(event.target.value)}
+          onChange={(event) => {
+            setPassword(event.target.value);
+            if (errorMsg) setErrorMsg("");
+          }}
           placeholder="Room password"
         />
+        {errorMsg && <p className={styles.errorText}>{errorMsg}</p>}
         <div className={styles.actions}>
           <button
             className={styles.button}
@@ -44,7 +54,7 @@ export default function RoomProtectedPrompt({ onSubmit }: RoomProtectedPromptPro
             disabled={!trimmed || isSubmitting}
             onClick={handleSubmit}
           >
-            Log in
+            {isSubmitting ? "Verifying..." : "Log in"}
           </button>
         </div>
       </div>

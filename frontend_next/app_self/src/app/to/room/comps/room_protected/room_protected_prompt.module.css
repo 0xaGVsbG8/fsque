@@ -37,6 +37,13 @@
   font-size: 14px;
 }
 
+.errorText {
+  color: #f87171;
+  font-size: 13px;
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
 .actions {
   display: flex;
   justify-content: flex-end;

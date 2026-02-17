@@ -8,10 +8,11 @@
 
 FsQue lets users create or join **rooms**, share files from their local filesystem, and transfer them directly to other users in the same room — in real time.
 
-- **Lobby** — browse available rooms, create new ones (public or password-protected), see live occupancy
-- **Room** — share files by picking them from disk, see who else is connected, download individual or multiple files from other users
-- **Transfers** — files are chunked (10 MB) and streamed over WebSocket; progress is tracked live with a transfer log panel, uploads/downloads can be canceled mid-transfer
-- **Multi-file** — select multiple files from another user and batch-download them into a chosen directory via the File System Access API
+- **Lobby** — browse available rooms, create new ones (public or password-protected), see live occupancy counts updated over WebSocket
+- **Room** — share files by picking them from disk, see who else is connected and what they're sharing, download individual or batch-download multiple files from other users
+- **Transfers** — files are chunked (10 MB) and streamed over WebSocket; progress is tracked live in a floating transfer log panel; uploads and downloads can be canceled mid-transfer by either side
+- **Multi-file** — select multiple files from another user via checkboxes (including "select all") and batch-download them into a chosen directory via the File System Access API
+- **Safety** — the browser's `beforeunload` dialog prevents accidental tab/window closure while a transfer is in progress
 
 Files **never touch the server's disk**. The backend only relays binary chunks between the uploader and the downloader.
 
@@ -60,77 +61,95 @@ All services run inside Docker containers on a shared bridge network (`fsque_net
 FSQUE/
 ├── docker-compose.yml          # Orchestrates all 4 services
 ├── .env                        # Runtime & build-time config
+├── fsque.service               # Systemd unit for auto-deploy on Linux
 │
 ├── backend_fastapi/
 │   ├── Dockerfile
 │   ├── requirements.txt
 │   └── app_self/
-│       ├── deploy.py                     # Entry point — launches Uvicorn
+│       ├── deploy.py                     # Entry point — reads .env, verifies DB, launches Uvicorn
 │       └── app/
 │           ├── main.py                   # FastAPI app, CORS, routes
-│           ├── app_independencies.py     # App factory, CORS origins, router prefix
+│           ├── app_independencies.py     # App factory, CORS origins, router prefix (/backend)
 │           ├── db_conn.py                # SQLAlchemy engine (MariaDB)
 │           ├── lifespan.py               # Startup task: room cleanup overseer
 │           ├── views/
-│           │   ├── models.py             # ORM model: rooms_info
+│           │   ├── models.py             # ORM model: rooms_info (name, owner, privacy, token, etc.)
 │           │   ├── router.py             # Registers all API & WS routes
+│           │   ├── request_timeouter.py  # Request timeout middleware
 │           │   ├── APIs/
 │           │   │   ├── read_rooms.py     # GET  /read_rooms/
 │           │   │   ├── add_room.py       # POST /make_room/
 │           │   │   └── verify_room.py    # GET  /does_room_exists/
 │           │   │                         # POST /check_room_password/
 │           │   ├── WSs/
-│           │   │   ├── rooms_lobby.py    # WS /rooms-lobby/ (live room list)
-│           │   │   ├── set_connection.py # WS /room-control/ (room presence + transfer negotiation)
-│           │   │   ├── ws_utils.py       # Shared WS state (ROOM_CONNECTIONS)
-│           │   │   ├── make_single_transfer_modules/   # WS /single-file-transfer/
-│           │   │   └── make_multiple_transfer_modules/ # WS /multiple-files-transfer/
+│           │   │   ├── rooms_lobby.py    # WS /rooms-lobby/  — live room list broadcast
+│           │   │   ├── set_connection.py # WS /room-control/  — room presence, payload broadcast,
+│           │   │   │                     #                       transfer negotiation (single & multi)
+│           │   │   ├── ws_utils.py       # Shared WS state (ROOM_CONNECTIONS, USERS_PAYLOAD)
+│           │   │   ├── make_single_transfer_modules/
+│           │   │   │   ├── make_single_transfer.py   # WS /single-file-transfer/ endpoint
+│           │   │   │   └── utils.py                   # Relay class (client/host chunk relay)
+│           │   │   └── make_multiple_transfer_modules/
+│           │   │       ├── make_multiple_transfer.py  # WS /multiple-files-transfer/ endpoint
+│           │   │       └── utils.py                   # MultiRelay class (sequential file relay)
 │           │   └── middlewares/
-│           │       └── assign_user_id.py # Auto-assigns user_id cookie
+│           │       └── assign_user_id.py # Auto-assigns user_id cookie (skips WebSocket connections)
 │           └── modules/
-│               ├── overseer.py           # Background task: deletes inactive rooms (10 min)
+│               ├── overseer.py           # Background task: deletes rooms inactive for 10 min
 │               └── touchRoomRecord.py    # Updates room lastActivity timestamp
 │
 ├── frontend_next/
 │   ├── Dockerfile
 │   └── app_self/
-│       ├── next.config.ts               # basePath: /fsque, env mapping
-│       ├── package.json                 # Next.js 16, React 19
-│       └── src/app/to/
-│           ├── layout.tsx               # Root layout with wrappers
-│           ├── app_conf.tsx             # API URLs, SSL toggle, chunk size
+│       ├── next.config.ts               # basePath: /fsque, env mapping, React Compiler
+│       ├── package.json                 # Next.js 16, React 19, uuid
+│       └── src/app/to/                  # App pages (served under /fsque/to/*)
+│           ├── layout.tsx               # Root layout with global wrappers
+│           ├── app_conf.tsx             # API URLs, SSL toggle, chunk size (10 MB)
 │           ├── types.tsx                # Shared TypeScript types
+│           ├── globals.css              # Global styles
 │           ├── wrappers/
-│           │   ├── Is_browser_supported_wrapper/  # Gates on FS Access API support
-│           │   └── Is_user_logged_in/             # Username prompt if not set
+│           │   ├── Is_browser_supported_wrapper/  # Gates on File System Access API support
+│           │   └── Is_user_logged_in/             # Username prompt if cookie not set
+│           ├── global_comps/
+│           │   ├── username_prompt.tsx   # Username input dialog
+│           │   └── unsuported_browser.tsx # "Browser not supported" notice
+│           ├── modules/
+│           │   ├── cookie_manager.tsx   # Cookie get/set/remove helpers
+│           │   ├── get_username.tsx     # Read username from cookie
+│           │   └── acquire_rooms_ls.tsx # HTTP fallback for room list
 │           ├── lobby/
-│           │   ├── page.tsx             # Room list with live WS updates
-│           │   └── createroompanel/     # Room creation form
-│           ├── room/
-│           │   ├── [room_id]/
-│           │   │   ├── page.tsx         # Room view: user cards, file list, sharing
-│           │   │   └── room_utils/
-│           │   │       ├── upload_single_file.ts    # Chunked upload over WS
-│           │   │       ├── upload_multiple_files.ts  # Sequential multi-file upload
-│           │   │       ├── DownloadSingleFile.ts     # Single file download via FS API
-│           │   │       └── DownloadMultipleFiles.ts  # Multi-file download to directory
-│           │   └── comps/
-│           │       ├── app_modules/mk_conn.tsx      # Main WS connection manager
-│           │       ├── room_protected_prompt.tsx     # Password prompt for private rooms
-│           │       └── transfer_log/                 # Live transfer progress panel
-│           └── modules/
-│               ├── cookie_manager.tsx   # Cookie get/set/remove
-│               ├── get_username.tsx     # Read username from cookie
-│               └── acquire_rooms_ls.tsx # HTTP fallback for room list
+│           │   ├── page.tsx             # Room list with live WS updates, room creation
+│           │   ├── page.module.css
+│           │   └── createroompanel/     # Room creation form (name, password, privacy)
+│           └── room/
+│               ├── [room_id]/
+│               │   ├── page.tsx         # Room view: user cards, file lists, select-all,
+│               │   │                    #   download selected, share files
+│               │   ├── room.module.css  # Dark theme room styles
+│               │   └── room_utils/
+│               │       ├── mk_conn.tsx              # Room WebSocket connection manager
+│               │       ├── upload_single_file.ts    # Chunked upload (host side)
+│               │       ├── upload_multiple_files.ts  # Sequential multi-file upload (host side)
+│               │       ├── DownloadSingleFile.ts     # Single file download (client side)
+│               │       ├── DownloadMultipleFiles.ts  # Multi-file download to directory (client side)
+│               │       └── chunkManager.ts           # Chunk size utilities
+│               └── comps/
+│                   ├── room_protected/
+│                   │   └── room_protected_prompt.tsx  # Password prompt for private rooms
+│                   └── transfer_log/
+│                       ├── transfer_log.tsx           # Floating progress panel (expandable)
+│                       └── transfer_log.module.css
 │
 ├── nginx/
 │   ├── dockerfile
-│   └── default.conf                    # Reverse proxy: /fsque/ → frontend, /fsque/backend/ → backend
+│   └── default.conf                    # Reverse proxy config with WebSocket upgrade support
 │
 └── sql_database/
-    ├── dockerfile                      # MariaDB LTS
+    ├── dockerfile                      # MariaDB LTS, auto-creates `fsque` database
     ├── fsque_template.sql              # Schema: rooms_info table
-    └── data/                           # Persistent volume for DB data
+    └── data/                           # Bind-mounted persistent DB data
 ```
 
 ---
@@ -138,13 +157,14 @@ FSQUE/
 ## How File Transfer Works
 
 ```
-  User A (Sender)                   Backend (Relay)                User B (Receiver)
-  ───────────────                   ───────────────                ─────────────────
+  User A (Host)                    Backend (Relay)                User B (Client)
+  ─────────────                    ───────────────                ────────────────
        │                                  │                              │
        │  1. Picks files via              │                              │
        │     showOpenFilePicker()         │                              │
        │                                  │                              │
-       │  2. Files listed via room WS ───►│──── broadcast to room ──────►│
+       │  2. File list broadcast ────────►│──── payload to room ────────►│
+       │     via room WS                  │                              │
        │                                  │                              │
        │                                  │◄── "I want file X" ─────────│  3. Clicks Download
        │                                  │                              │     (showSaveFilePicker)
@@ -154,15 +174,23 @@ FSQUE/
        │     sends binary via WS ────────►│──── relay binary ──────────►│  5. Writes to disk
        │                                  │                              │     via FileSystemWritableFileStream
        │     (waits for ACK per chunk)    │◄── ACK ────────────────────│
+       │◄── ACK ─────────────────────────│                              │
        │                                  │                              │
        │  6. "transfer_complete" ────────►│──── "transfer_complete" ───►│  7. Closes writable
        └──────────────────────────────────┴──────────────────────────────┘
 ```
 
-- **Single file**: One dedicated WS at `/single-file-transfer/`
-- **Multiple files**: Sequential transfer over one WS at `/multiple-files-transfer/`, each file opened/closed on disk before the next begins
-- **Cancellation**: Either side can cancel mid-transfer; the other is notified
-- **Progress**: Percentage tracked and displayed live in the transfer log
+### Single file
+One dedicated WebSocket at `/single-file-transfer/`. The `Relay` class on the backend manages the `host()` and `client()` coroutines concurrently — the host sends chunks, the client ACKs them, and progress is relayed back.
+
+### Multiple files
+Sequential transfer over a single WebSocket at `/multiple-files-transfer/`. The `MultiRelay` class iterates through the file list — for each file it resets the offset, tells both sides which file is next (`begin_file`), relays all chunks, waits for the client to save, then moves on. A tracker like `(2/5)` is shown in the transfer log.
+
+### Cancellation
+Either side can cancel mid-transfer. The other party is notified via `transfer_canceled_by` message. The transfer log updates accordingly with `(Canceled by me)` or `(Canceled by HOST/client)`.
+
+### Page close protection
+While any transfer is active, a `beforeunload` event listener prevents accidental tab closure. The listener is removed once the transfer completes or is canceled.
 
 ---
 
@@ -170,12 +198,35 @@ FSQUE/
 
 | Feature | Details |
 |---|---|
-| **Create** | Name, optional password, public/private, visible/hidden, auto-redirect |
+| **Create** | Name, optional password, public/private toggle, visible/hidden, owner name |
 | **Join** | Click from lobby or navigate directly by room URL |
-| **Password** | Private rooms require password; once entered, user is added to `allowed_users` |
-| **Occupancy** | Live count of connected WebSocket clients per room |
-| **Auto-cleanup** | Background task deletes rooms with no activity for 10 minutes (skips occupied rooms) |
-| **Live updates** | Lobby receives room list changes via WebSocket broadcast |
+| **Password** | Private rooms require a password; once correct, user is added to `allowed_users` in DB |
+| **Occupancy** | Live count of connected WebSocket clients per room, visible in lobby |
+| **Payload sharing** | Each user's shared files (filename, size, ID) are broadcast to all room members |
+| **Auto-cleanup** | Background task runs every 30s, deletes rooms with no activity for 10 minutes (skips occupied rooms) |
+| **Live lobby** | Room list changes (create, delete, occupancy) are broadcast to all lobby WebSocket connections |
+
+---
+
+## WebSocket Endpoints
+
+All WebSocket endpoints are under the `/backend` prefix.
+
+| Endpoint | Purpose |
+|---|---|
+| `WS /rooms-lobby/` | Live room list updates for the lobby page |
+| `WS /room-control/` | Room presence management, user payload broadcast, transfer negotiation |
+| `WS /single-file-transfer/` | Dedicated relay for a single file transfer between two users |
+| `WS /multiple-files-transfer/` | Dedicated relay for sequential multi-file transfer between two users |
+
+## REST Endpoints
+
+| Endpoint | Method | Purpose |
+|---|---|---|
+| `/read_rooms/` | GET | List all visible rooms |
+| `/make_room/` | POST | Create a new room |
+| `/does_room_exists/` | GET | Check if a room exists and whether the user has access |
+| `/check_room_password/` | POST | Verify room password, add user to allowed list |
 
 ---
 
@@ -185,21 +236,19 @@ Create a `.env` file in the project root:
 
 ```env
 API_PORT=9010
-API_BASE_URL=your-domain.com/fsque/backend
-API_WORKERS=4
-USE_SSL=y
+API_BASE_URL=localhost:8850/fsque/backend
+API_WORKERS=1
+USE_SSL=n
 ```
 
-| Variable | Description |
-|---|---|
-| `API_PORT` | Port for Uvicorn backend (default `9010`) |
-| `API_BASE_URL` | Public-facing backend URL (used by frontend for API calls) |
-| `API_WORKERS` | Number of Uvicorn workers |
-| `USE_SSL` | `y` to use `https://` and `wss://`, `n` for `http://` and `ws://` |
+| Variable | Description | Default |
+|---|---|---|
+| `API_PORT` | Port for Uvicorn backend | `9010` |
+| `API_BASE_URL` | Public-facing backend URL (used by frontend for fetch/WS calls) | — |
+| `API_WORKERS` | Number of Uvicorn workers | `1` |
+| `USE_SSL` | `y` for `https://`/`wss://`, `n` for `http://`/`ws://` | `n` |
 
-> **Important**: No spaces around `=` in the `.env` file.
-
-These variables are passed as Docker build args to the frontend container so Next.js can inline them at build time.
+These variables are passed as Docker build args to the frontend container so Next.js can inline them at build time via `next.config.ts`.
 
 ---
 
@@ -216,15 +265,33 @@ These variables are passed as Docker build args to the frontend container so Nex
 cd FSQUE
 
 # Create your .env file
-cp .env.example .env   # or create manually (see above)
+nano .env   # see Environment Variables above
 
 # Build and start all services
 docker compose up --build -d
 ```
 
-The app will be available at `http://localhost:8850/fsque/lobby`.
+The app will be available at **`http://localhost:8850/fsque/to/lobby`**.
 
-For production behind a reverse proxy with SSL, set `API_BASE_URL` to your domain and `USE_SSL=y`.
+### Deploy as a systemd service (Linux)
+
+A `fsque.service` unit file is included for auto-starting on boot:
+
+```bash
+# Edit the WorkingDirectory path in fsque.service to match your install location
+sudo cp fsque.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable fsque
+sudo systemctl start fsque
+```
+
+### Production
+
+For production behind a reverse proxy with SSL:
+1. Set `API_BASE_URL` to your public domain (e.g. `your-domain.com/fsque/backend`)
+2. Set `USE_SSL=y`
+3. Update the CORS origins in `backend_fastapi/app_self/app/app_independencies.py`
+4. Rebuild: `docker compose up --build -d`
 
 ---
 
@@ -233,8 +300,10 @@ For production behind a reverse proxy with SSL, set `API_BASE_URL` to your domai
 | Path | Proxied to | Purpose |
 |---|---|---|
 | `/fsque/backend/*` | `fsque_fastapi_backend:9010/backend/*` | REST APIs + WebSocket endpoints |
-| `/fsque/*` | `fsque_next_frontend:9011/fsque/*` | Next.js pages and static assets |
-| `/_next/*` | `fsque_next_frontend:9011/_next/*` | Next.js static chunks (fallback) |
+| `/fsque/*` | `fsque_next_frontend:9011/fsque/*` | Next.js pages and assets |
+| `/_next/*` | `fsque_next_frontend:9011/_next/*` | Next.js static chunks / HMR (dev) |
+
+All proxy locations include WebSocket upgrade headers for full WS support.
 
 ---
 
@@ -252,9 +321,29 @@ Firefox and Safari are **not supported**. The app shows an "Unsupported browser"
 
 ## Ports (Internal)
 
-| Service | Container Port |
-|---|---|
-| Nginx | `8850` (exposed to host) |
-| Next.js Frontend | `9011` |
-| FastAPI Backend | `9010` |
-| MariaDB | `3306` |
+| Service | Container Name | Internal Port | Exposed to Host |
+|---|---|---|---|
+| Nginx | `fsque_nginx` | `8850` | ✅ `8850` |
+| Next.js Frontend | `fsque_next_frontend` | `9011` | — |
+| FastAPI Backend | `fsque_fastapi_backend` | `9010` | — |
+| MariaDB | `fsque_db` | `3306` | — |
+
+---
+
+## Database
+
+MariaDB stores room data in the `rooms_info` table:
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | INT (PK) | Auto-increment ID |
+| `name` | VARCHAR | Room display name |
+| `owner` | VARCHAR | Creator's username |
+| `privacy` | ENUM(`public`, `private`) | Room access type |
+| `password` | TEXT | Room password (plaintext, for private rooms) |
+| `visible` | BOOLEAN | Whether room appears in lobby |
+| `allowed_users` | JSON | Array of user IDs with access |
+| `token` | VARCHAR(36) | UUID room identifier (used in URLs) |
+| `lastActivity` | BIGINT | Unix timestamp, updated on every interaction |
+
+Database files are persisted via bind mount at `./sql_database/data/`. The schema is auto-initialized from `fsque_template.sql` on first run.

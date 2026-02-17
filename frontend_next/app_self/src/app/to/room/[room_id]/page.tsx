@@ -37,7 +37,7 @@ const does_room_exists = async (room_id: string): Promise<RoomDataProps | null> 
         const response = await fetch(base_fetch + '/does_room_exists' + `/?received_room_id=${room_id}`, { credentials: 'include' })
         const data = await response.json() as RoomDataProps
         if (!data || data.room_found === false) {
-            window.open(default_app_url, '_self')
+            window.open('/fsque/to/lobby', '_self')
         }
         set_cookie('ROOM_ID', room_id)
         return data
@@ -119,10 +119,10 @@ const View = () => {
         })
     }, [users_ws_conn_info])
 
-    const handleRoomLogin = async (password: string) => {
+    const handleRoomLogin = async (password: string): Promise<boolean> => {
         const roomId = String(params.room_id)
         try {
-            const response = await fetch(base_fetch + '/check_room_password', {
+            const response = await fetch(base_fetch + '/check_room_password/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -132,17 +132,21 @@ const View = () => {
                 }),
             })
 
-            if (!response.ok) return
+            if (!response.ok) return true
 
             const data = await response.json().catch(() => null)
+
+            if (data && data.password_incorrect) return true
 
             if (data && typeof data.ALLOW_USER === 'boolean') {
                 setRoomData(prev => (prev ? { ...prev, ALLOW_USER: data.ALLOW_USER } : prev))
             }
 
             if (data && data.refresh) window.location.reload()
+            return false
         } catch (error) {
             console.error('Failed to verify room password', error)
+            return true
         }
     }
 
@@ -245,7 +249,7 @@ return (
                         </div>
                         <div className={styles.actions}>
                             <button className={styles.btnPrimary} onClick={pickFile}>Share a file</button>
-                            <button className={styles.btnHome} onClick={() => {window.open(default_app_url, '_self')}}>Go home</button>
+                            <button className={styles.btnHome} onClick={() => {window.open('fsque/to/lobby/', '_self')}}>Go home</button>
                             {/* <button className={styles.btnDanger} onClick={eraseFirstFileFromDisk}>Delete First</button> */}
                         </div>
                     </div>
@@ -373,7 +377,7 @@ return (
                                             )}
                                         </div>
                                     ) : !hasFiles ? (
-                                        <div className={styles.noFiles}>No files shared</div>
+                                        <div className={styles.noFiles}>No files shared yet</div>
                                     ) : null}
                                 </div>
                             )

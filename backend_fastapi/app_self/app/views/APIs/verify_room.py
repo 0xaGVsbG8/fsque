@@ -77,8 +77,6 @@ class ROOM_CREDS_PROPS(BaseModel):
 async def view(request: Request, userdata: ROOM_CREDS_PROPS,db: Session = Depends(get_db), bg_tasks: BackgroundTasks = None):
     
     USER_ID = request.state.user_id
-    FOUND_ROOM = False
-    print(USER_ID,'??')
     
     result = db.query(room_info).filter(room_info.token==userdata.received_room_id).first()
     if result:
@@ -95,6 +93,7 @@ async def view(request: Request, userdata: ROOM_CREDS_PROPS,db: Session = Depend
         
         else:
             print('password incorrect')
+            return {'password_incorrect':True}
         
   
     else:

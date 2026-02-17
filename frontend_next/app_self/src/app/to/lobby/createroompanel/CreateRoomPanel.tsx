@@ -33,8 +33,7 @@ export default function CreateRoomPanel({ onCreated, onClose }: CreateRoomPanelP
     !formData.name.trim() ||    
     (formData.protected && !formData.password.trim());
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleSubmit = async () => {
     const name = formData.name.trim();
     const password = formData.password.trim();
 
@@ -87,7 +86,7 @@ export default function CreateRoomPanel({ onCreated, onClose }: CreateRoomPanelP
   };
 
   return (
-    <form className={styles.panel} onSubmit={handleSubmit}>
+    <div className={styles.panel}>
       <div className={styles.panelHeader}>
         <h2 className={styles.panelTitle}>Create a room</h2>
         <p className={styles.panelSubtitle}>Set up a room and choose its visibility.</p>
@@ -125,6 +124,7 @@ export default function CreateRoomPanel({ onCreated, onClose }: CreateRoomPanelP
             <input
               className={styles.textInput}
               type="password"
+              autoComplete="off"
               value={formData.password}
               onChange={(event) =>
                 setFormData((prev) => ({
@@ -167,10 +167,10 @@ export default function CreateRoomPanel({ onCreated, onClose }: CreateRoomPanelP
         <button className={styles.secondaryButton} type="button" onClick={onClose}>
           Cancel
         </button>
-        <button className={styles.submitButton} type="submit" disabled={isCreateDisabled}>
+        <button className={styles.submitButton} type="button" disabled={isCreateDisabled} onClick={handleSubmit}>
           Create room
         </button>
       </div>
-    </form>
+    </div>
   );
 }

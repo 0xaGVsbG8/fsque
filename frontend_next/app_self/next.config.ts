@@ -28,6 +28,7 @@ const nextConfig: NextConfig = {
 
   /* config options here */
   basePath: '/fsque',
+  trailingSlash: true,
   reactCompiler: true,
   allowedDevOrigins: [
     'http://localhost:9000',

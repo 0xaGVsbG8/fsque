@@ -82,7 +82,7 @@ class Relay:
                 # This only fires when CLIENT_WS.receive_json() fails = actual client disconnect
                 # print(e)
                 if '100' not in str(PERC):
-                    print('client disconnected before download finished')
+                    print('client disconnected before download is finished')
                     try:
                         await self.HOST_WS.send_json({'transfer_canceled_by':'client'})
                     except Exception as e:
@@ -104,7 +104,6 @@ class Relay:
                 if self.THIS_ROOM_DATA.get('client_ready'):
 
                     if time.time() - LAST_TOUCH >= ROOM_TOUCH_INTERVAL:
-                        # print('touching room')
                         TouchRoom(self.ROOM_ID)
                         LAST_TOUCH = time.time()
 
@@ -117,7 +116,6 @@ class Relay:
 
                     if 'text' in msg:
                         msg = json.loads(msg['text'])
-                        print(msg, 'yoyo')
                         if msg.get('transfer_complete'):
                             print('transfer complete!')
                             PERC = '100.00'
@@ -126,9 +124,8 @@ class Relay:
                             print('client notified')
 
                             try:
-                                print('???')
                                 await asyncio.sleep(5)
-                                # await self.HOST_WS.close()
+                                await self.HOST_WS.close()
                                 await self.CLIENT_WS.close()
                             except Exception as e:
                                 ...

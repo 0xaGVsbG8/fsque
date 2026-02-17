@@ -11,14 +11,14 @@ from views.models import room_info
 from sqlalchemy.orm import Session
 import time
 # from .link import link_broadcast_rooms
-from .ws_utils import ROOM_CONNECTIONS, count_occupancy
+from .ws_utils import ROOM_CONNECTIONS, count_occupancy, USERS_PAYLOAD, store_connection, register_user_in_room, remove_connection, unregister_user_in_room
 from .rooms_lobby import broadcast_rooms
+
+
 
 router = APIRouter()
 
 
-
-USERS_PAYLOAD = {}
 
 #STRUCTURE
 # [access_token: {
@@ -56,58 +56,6 @@ def validate_token_access(ROOM_ID: str, USER_ID: str):
 #room_id: [{username: 2, user_id:2,payload:xd}]
 
 
-def register_user_in_room(room_id:str, USERNAME: str, USER_ID:str, temp_user_id: str):
-    
-    
-    if not USERS_PAYLOAD.get('room_'+room_id):
-        USERS_PAYLOAD['room_'+room_id] = {'user_'+USER_ID:{'username':USERNAME,'payload':[],'temp_user_id':temp_user_id}}
-    else:
-        USERS_PAYLOAD['room_'+room_id]['user_'+USER_ID]={'username':USERNAME,'payload':[],'temp_user_id':temp_user_id}
-        # ROOM_CONNECTIONS[room_id].append(ws)
-        ...
-    
-    
-    # print('user registered', USERS_PAYLOAD)
-
-
-def unregister_user_in_room(room_id:str, USER_ID:str):
-    
-    if USERS_PAYLOAD.get('room_'+room_id):
-        if USERS_PAYLOAD['room_'+room_id].get('user_'+USER_ID):
-            del USERS_PAYLOAD['room_'+room_id]['user_'+USER_ID]
-        ...
-    
-    
-    
-
-        
-def store_connection(room_id:str,user_id: str, ws: WebSocket):
-    # ROOM_CONNECTIONS.setdefault(room_id, []).append(ws)
-    
-    if not ROOM_CONNECTIONS.get(room_id):
-        ROOM_CONNECTIONS[room_id] = {user_id: ws}
-    else:
-        ROOM_CONNECTIONS[room_id][user_id] = ws
-    
-    # print('Connection stored')
-
-
-def remove_connection(room_id:str,user_id: WebSocket):
-    
-    if room_id in ROOM_CONNECTIONS:
-        
-        
-        ROOM = ROOM_CONNECTIONS[room_id]
-        if ROOM.get(user_id):
-            del ROOM[user_id]
-        # print(ROOM, 'xd?')
-        
-        #     ROOM_CONNECTIONS[room_id].remove(user_id)
-            
-        # if not ROOM_CONNECTIONS[room_id]:
-        #     del ROOM_CONNECTIONS[room_id]
-        
-
 
             
 async def broadcast_occupancy(room_id):
@@ -120,6 +68,7 @@ async def broadcast_occupancy(room_id):
                 await ws.send_json({'connected_users':occupancy})
             except Exception as e:
                 print('connection already closed!')
+
 
 
 async def broadcast_payloads(room_id, user_id):
@@ -155,7 +104,6 @@ async def broadcast_payloads(room_id, user_id):
                 user_ws_conn_info.append(data)
                 
                 
-                # print(USER_ID, USERNAME, values)
                 
                 
             for key, ws in ROOM_CONNECTIONS[room_id].items():
@@ -176,8 +124,6 @@ def update_users_payload(room_id, user_id, payload):
         if ROOM_DATA.get('user_' + user_id):
             USER_DATA = ROOM_DATA.get('user_' + user_id)
             USER_DATA['payload'] = payload
-            # print(USER_PAYLOAD, ROOM_DATA, 'xd?')
-            # print(ROOM_DATA, 'xd?')
             print('USERS PAYLOAD ALTERED')
             return True
     
@@ -267,15 +213,9 @@ async def websocket_endpoint(ws: WebSocket):
                                 
                                 
                                 
-                                
-                                
                         if data.get('user_single_file_transfer_request'):
                             userdata = data['user_single_file_transfer_request']
                             userdata:dict
-                            print(userdata, '?XX', 'user wants to start a trasnfer')
-                            # print('\n\n\n',userdata, 'incoming userdata')
-                            # import asyncio
-                            # await asyncio.sleep(30)
                             if ROOM_CONNECTIONS.get(ROOM_ID):
                                 ...
                                 if ROOM_CONNECTIONS[ROOM_ID].get(userdata['file_owner_id']) and userdata.get('file_owner_id') :
@@ -285,7 +225,6 @@ async def websocket_endpoint(ws: WebSocket):
                                     
                                     TARGET = userdata['file_id']
                                     
-                                    # print('HOST located! -->' , HOST)
                                     
                                     
                                     SINGLE_FILE_TRANSFER_ROOMS[TRANSFER_ACCESS_TOKEN] = {
@@ -317,15 +256,9 @@ async def websocket_endpoint(ws: WebSocket):
                                     
                                     print('Room data prepared!')
                                     
-
-                                    
-                                    # print(SINGLE_FILE_TRANSFER_ROOMS, 'yopyo')
-                            # HOST = ROOM_CONNECTIONS[[ROOM_ID][userdata['file_owner_id']]]
                         
                     except json.JSONDecodeError:
                         print('data not in json')
-                    # try:
-                    ...
                         
             except WebSocketDisconnect:
                 remove_connection(ROOM_ID, USER_ID)
@@ -339,4 +272,3 @@ async def websocket_endpoint(ws: WebSocket):
                 
                 # print('user disconnected')
             
-    # await ws.close()

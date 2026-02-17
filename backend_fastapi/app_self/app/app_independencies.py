@@ -28,7 +28,7 @@ app = FastAPI(
     # docs_url=None,
     # redoc_url=None,
     # openapi_url=False,
-    lifespan=lifespan
+    lifespan=lifespan #Cycle of maintance tasks
 )
 #unmark those to disable public docs
 

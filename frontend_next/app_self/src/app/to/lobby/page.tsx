@@ -14,14 +14,7 @@ import { remove_cookie, set_cookie } from "../modules/cookie_manager";
 
 
 
-// NOT IN USE ANYMORe
-// const initialRooms: RoomEntry[] = [
-//   { name: "Alpha Room", protected: true, visible: true },
-//   { name: "Beta Lounge", protected: false, visible: true },
-//   { name: "Gamma Hub", protected: true, visible: true },
-//   { name: "Delta Den", protected: false, visible: true },
-//   { name: "Epsilon Suite", protected: false, visible: true },
-// ];
+
 
 const redirect_to_room = (room_id: string, copy_url: boolean = false) => {
   const url = `/fsque/to/room/${room_id}`
@@ -33,11 +26,10 @@ const redirect_to_room = (room_id: string, copy_url: boolean = false) => {
       console.log('clipboard unavaiable')
     }
   }
-
-
   window.open(url, '_self')
 }
 export {redirect_to_room}
+
 
 export default function LobbyPage() {
 
@@ -80,9 +72,6 @@ export default function LobbyPage() {
 
     setRooms((prev) => {
       const safeRooms = Array.isArray(prev) ? prev : [];
-      // if (safeRooms.some((room) => room.name.toLowerCase() === name.toLowerCase())) {
-      //   return safeRooms;
-      // }
 
       return [
         ...safeRooms,
@@ -103,8 +92,6 @@ export default function LobbyPage() {
 
   const gather_rooms_ls = async() => {
     const ws_url = base_ws + '/rooms-lobby/'
-
-    // const upload_ws = new WebSocket(base_ws + '/single-file-transfer/' + `?TRANSFER_ACCESS_TOKEN=${TRANSFER_ACCESS_TOKEN}`)
 
     if(ws_opened.current) return
     ws_opened.current = true
@@ -130,7 +117,7 @@ export default function LobbyPage() {
       const data = JSON.parse(msg.data)
       console.log(data)
       if(data.rooms){
-        //example data
+        //example data to render columns
         setRooms([...data.rooms,...[{'name':'','protected': false, 'visible':false}]])
       }
     }
@@ -138,9 +125,6 @@ export default function LobbyPage() {
 
 
     ws.addEventListener('message', handleMessage)
-
-      // const data = await acquire_rooms_ls()
-      // setRooms([...data.rooms,...[{'name':'','protected': false, 'visible':false}]])
 
   }
 

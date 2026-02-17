@@ -18,4 +18,4 @@ views_router.include_router(set_connection.router)
 views_router.include_router(make_single_transfer.router)
 views_router.include_router(make_multiple_transfer.router)
 
-print('Views room loaded in!')
+print('All view routers loaded in!')

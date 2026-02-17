@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from app_independencies import app
 import asyncio
 # from db_conn import get_db
-# from views import Request_timeouter
+from views import request_timeouter
 from fastapi import FastAPI
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles

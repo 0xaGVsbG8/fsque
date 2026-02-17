@@ -28,9 +28,6 @@ async def view(request: Request, userdata: make_room_props, db: Session = Depend
     
     USER_ID = request.state.user_id
     
-    print(USER_ID, 'userek?')
-    
-    # userdata.room_id = str(uuid.uuid4())
     room_token = str(uuid.uuid4())
     
     new_room = room_info(
@@ -46,12 +43,7 @@ async def view(request: Request, userdata: make_room_props, db: Session = Depend
     
     db.commit()
     room_token = str(new_room.token)
-    # db_conn.add_room(userdata.name,userdata.passwd,userdata.privacy,userdata.visible, userdata.owner, room_token)
     STASHED_ROOMS[room_token] = []
-    # db_conn.create_default_record_in_stashed_rooms(room_token)
     await broadcast_rooms()
     return {'room_token': room_token}
-    # db_conn.add_room(**userdata.dict())
-    
-    ...
     

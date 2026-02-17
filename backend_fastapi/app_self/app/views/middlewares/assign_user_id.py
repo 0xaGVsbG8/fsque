@@ -9,8 +9,6 @@ import uuid
 class ASSIGN_CLIENT_ID(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         
-        # BaseHTTPMiddleware breaks WebSocket connections — skip for WS
-    
         
         if not request.cookies.get('user_id'):
             print('no user id yet')
@@ -29,7 +27,7 @@ class ASSIGN_CLIENT_ID(BaseHTTPMiddleware):
                 value = token,
                 path='/',
                 max_age=60*60*24*365*10,
-                httponly = True
+                httponly = True,
             )
 
         return response

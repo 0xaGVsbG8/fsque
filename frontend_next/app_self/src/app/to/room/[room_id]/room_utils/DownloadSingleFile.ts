@@ -1,7 +1,7 @@
 import { base_ws, wait_for_client_response_while_uploading } from "../../../app_conf"
 import get_username from "../../../modules/get_username"
 import { transfer_log_data_props } from "../../../types"
-import { update_perc_value } from "./upload_single_file"
+import { update_perc_value } from "./chunkManager"
 
 export type transfer_log_data_utils = {
     set_transfer_log_data: React.Dispatch<React.SetStateAction<transfer_log_data_props[]|null>>
@@ -187,11 +187,6 @@ const DownloadSingleFile = async ({ws_ref, filename, file_id, host_username, fil
 
 
 
-        // return
-
-
-        
-        // await writable.close()
 
     } catch (err) {
         console.error(err)

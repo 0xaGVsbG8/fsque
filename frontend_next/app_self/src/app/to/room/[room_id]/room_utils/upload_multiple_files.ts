@@ -1,6 +1,7 @@
 import { base_ws, wait_for_client_response_while_uploading } from "../../../app_conf"
 import { transfer_log_data_props } from "../../../types"
-import { ModifiedFile, transfer_log_data_utils, sendFileInChunks, update_perc_value } from "./upload_single_file"
+import { sendFileInChunks, update_perc_value } from "./chunkManager"
+import { ModifiedFile, transfer_log_data_utils } from "./upload_single_file"
 
 let opened_multiple_file_transfer: boolean = false
 

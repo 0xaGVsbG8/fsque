@@ -188,9 +188,17 @@ const DownloadSingleFile = async ({ws_ref, filename, file_id, host_username, fil
 
 
 
-    } catch (err) {
-        console.error(err)
+    } catch (err: any) {
+        if (err?.name === 'AbortError') {
+            console.log('User cancelled file picker')
+        } else if (err?.name === 'NotAllowedError') {
+            console.warn('Permission denied — you must click "Allow" when the browser asks to save files.')
+            alert('Permission denied. Please click "Allow" when the browser asks to save/edit files on your device.')
+        } else {
+            console.error('Download failed:', err)
+        }
     }
+    
 }
 
 export default DownloadSingleFile

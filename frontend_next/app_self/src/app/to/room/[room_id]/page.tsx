@@ -39,7 +39,7 @@ const does_room_exists = async (room_id: string): Promise<RoomDataProps | null> 
         const data = await response.json() as RoomDataProps
         // console.log(data, 'xd?', room_id)
         if (!data || data.room_found === false) {
-            window.open('/lobby', '_self')
+            window.open(default_app_url, '_self')
         }
         // if(data.USER_ACCESS_TOKEN){set_cookie('USER_ACCESS_TOKEN', data.USER_ACCESS_TOKEN)}
         set_cookie('ROOM_ID', room_id)

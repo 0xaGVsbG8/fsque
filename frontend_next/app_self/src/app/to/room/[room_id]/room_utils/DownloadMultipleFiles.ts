@@ -187,8 +187,24 @@ const DownloadMultipleFiles = async ({
 
     if (!('showSaveFilePicker' in window) || !ws_ref.current) return
 
-    const dirHandle = await (window as any).showDirectoryPicker();
 
+
+    let dirHandle: FileSystemDirectoryHandle
+    try {
+        dirHandle = await (window as any).showDirectoryPicker()
+    } catch (err: any) {
+        if (err?.name === 'AbortError') {
+            console.log('User cancelled directory picker')
+        } else if (err?.name === 'NotAllowedError') {
+            console.warn('Permission denied — you must click "Allow" when the browser asks to access the folder.')
+            alert('Permission denied. Please click "Allow" when the browser asks to view and edit files in the selected folder.')
+        } else {
+            console.error('Directory picker failed:', err)
+        }
+        return
+    }
+
+    
     const listenForRoomData = (msg: MessageEvent) => {
         const data = JSON.parse(msg.data) as incoming_transfer_props
         if (data.incoming_transfer) {

@@ -4,7 +4,7 @@ import { base_ws, wait_for_client_response_while_uploading } from "../../../app_
 import { transfer_log_data_props } from "../../../types"
 import { update_perc_value } from "./chunkManager"
 
-export type DownloadMultipleFilesEntry = {
+export type DownloadMultipleFilesEntry = {2
     file_id: string
     filename: string
     filesize: number

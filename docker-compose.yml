@@ -7,8 +7,9 @@ services:
     container_name: fsque_db
     expose:
       - "3306"
-    volumes:
-      - ./sql_database/data:/var/lib/mysql
+      #uncomment those if you want to keep your rooms data even after restart
+    # volumes:
+      # - ./sql_database/data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 5s

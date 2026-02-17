@@ -316,7 +316,7 @@ return (
                                                 <div className={styles.colSize}>Size</div>
                                                 <div className={styles.colAction}>
                                                     Action
-                                                    {!isMe && <input
+                                                    {!isMe && window.innerWidth > 900 && <input
                                                         type='checkbox'
                                                         checked={(() => {
                                                             const allFileIds = user.payload.filter(p => typeof p === 'object' && p.file_id).map(p => p.file_id)
@@ -346,7 +346,7 @@ return (
                                                     <div className={styles.fileName}>{item.filename}</div>
                                                     <div className={styles.fileSize}>{item.filesize ?? item.filesize}</div>
                                                     <div className={styles.fileActions}>
-                                                        {!isMe && <input
+                                                        {!isMe && window.innerWidth > 900 &&  <input
                                                             type='checkbox'
                                                             checked={isSelected}
                                                             onChange={() => {

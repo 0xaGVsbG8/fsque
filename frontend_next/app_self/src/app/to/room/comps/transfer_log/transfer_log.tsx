@@ -26,9 +26,12 @@ const Transfer_log = ({transfer_log_data, ongoing_transfer_count, set_ongoing_tr
         <>
         {transfer_log_data && (
 
-            <div className={styles.container}>
+            <div className={styles.container} style={{
+                width: window.innerWidth > 900 ? undefined :
+                expanded ? undefined: '10%'
+            }}>
                 <div className={styles.titleRow}>
-                    <span className={styles.title}>Transfer log ({ongoing_transfer_count})</span>
+                    {window.innerWidth > 900 ? <span className={styles.title}>Transfer log ({ongoing_transfer_count})</span> : (expanded &&  <span className={styles.title}>Transfer log ({ongoing_transfer_count})</span>)}
                     <button
                         onClick={() => setExpanded(prev => !prev)}
                         className={styles.toggleBtn}

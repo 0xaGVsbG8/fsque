@@ -1,5 +1,7 @@
 # FsQue
 
+LIVE-DEMO: https://woodruf-webkit.webhop.me/fsque/to/lobby
+
 **Peer-to-peer file sharing through the browser** — no cloud storage, no file size limits, no uploads to a server. Files stream directly between users' browsers via WebSocket relay.
 
 ---

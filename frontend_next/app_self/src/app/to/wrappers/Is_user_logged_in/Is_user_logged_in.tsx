@@ -1,7 +1,5 @@
 'use client'
 import {useEffect, useState} from 'react'
-// import UnsupportedBrowserNotice from '../../global_comps/unsuported_browser'
-// import styles from "./Is_browser_supported_wrapper.module.css";
 import UsernamePrompt from '../../global_comps/username_prompt';
 import { cookie_finder, set_cookie } from '../../modules/cookie_manager';
 import { base_fetch } from '../../app_conf';
@@ -46,7 +44,6 @@ export default function Is_user_logged_in({
 
   return (
     <>
-    {/* {children} */}
       {isLogged ? (
         children
       ) : (
@@ -61,7 +58,6 @@ export default function Is_user_logged_in({
       )}
 
 
-      {/* {children} */}
     </>
   );
   

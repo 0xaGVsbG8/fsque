@@ -2,7 +2,7 @@ import get_username from "../../../modules/get_username"
 import { transfer_log_data_utils } from "./DownloadSingleFile"
 import { base_ws, wait_for_client_response_while_uploading } from "../../../app_conf"
 import { transfer_log_data_props } from "../../../types"
-import { update_perc_value } from "./upload_single_file"
+import { update_perc_value } from "./chunkManager"
 
 export type DownloadMultipleFilesEntry = {
     file_id: string
@@ -95,7 +95,6 @@ const launch_client_download = async ({
 
             if (data.begin_file) {
 
-                // if(current_writable){}
                 current_file_id = data.begin_file
                 const file_index: number = data.file_index
                 const total_files: number = data.total_files
@@ -103,7 +102,6 @@ const launch_client_download = async ({
                 const filename = file_info?.filename ?? 'unknown'
                 const tracker = `(${file_index}/${total_files})`
 
-                // Create file in chosen directory
                 const fileHandle = await dirHandle.getFileHandle(filename, { create: true })
                 current_writable = await fileHandle.createWritable()
 

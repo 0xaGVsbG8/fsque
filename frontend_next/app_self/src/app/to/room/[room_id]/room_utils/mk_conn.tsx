@@ -1,11 +1,11 @@
 import { base_ws } from "../../../app_conf"
 import { cookie_finder } from "../../../modules/cookie_manager"
-import { transfer_log_data_props, user_ws_conn_info } from "../../../types"
+import { transfer_log_data_props, transfer_log_data_utils, user_ws_conn_info } from "../../../types"
 import { connect } from "http2"
-import { ModifiedFile } from "../../[room_id]/page"
+import { ModifiedFile } from "../page"
 import { wait_for_client_response_while_uploading } from "../../../app_conf"
-import UploadSingleFile from "../../[room_id]/room_utils/upload_single_file"
-import UploadMultipleFiles from "../../[room_id]/room_utils/upload_multiple_files"
+import UploadSingleFile from "./upload_single_file"
+import UploadMultipleFiles from "./upload_multiple_files"
 
 export type sendFileInChunks_props = transfer_log_data_utils & {
     file_id: string
@@ -13,10 +13,7 @@ export type sendFileInChunks_props = transfer_log_data_utils & {
     ws: WebSocket
 }
 
-export type transfer_log_data_utils = {
-    set_transfer_log_data: React.Dispatch<React.SetStateAction<transfer_log_data_props[]|null>>
-    transfer_log_data_ref: React.MutableRefObject<transfer_log_data_props[]|null>
-}
+
 
 export type launch_props =  transfer_log_data_utils & {
     ws_ref: React.MutableRefObject<WebSocket | null>
@@ -42,36 +39,16 @@ export function formatFileSize(bytes: number): string {
     return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB'
 }
 
-// const CHUNK_SIZE = 64 * 1024 // 64KB chunks
-// const CHUNK_SIZE = 5120 * 1024 // 64KB chunks #5MBs
-const CHUNK_SIZE = 10 * 1024  * 1024 // 64KB chunks #5MBs
-
-
-function waitForAck(ws: WebSocket): Promise<void> {
-    return new Promise((resolve) => {
-
-        const handler = (event: MessageEvent) => {
-            // console.log(event, 'handler?')
-            if (typeof event.data === "string") {
-                const data = JSON.parse(event.data)
-
-                if (data.chunk_received) {
-                    // console.log('client received a chunk')
-                    ws.removeEventListener("message", handler)
-                    resolve()
-                }
-            }
-        }
-
-        ws.addEventListener("message", handler)
-    })
-}
 
 
 
 
 
-const launch = ({ws_ref, set_conns_counter, set_ongoing_transfer_count, set_users_ws_conn_info,setMyTempId, fileLsRefForTransfer, set_transfer_log_data, transfer_log_data_ref}:launch_props) => {
+
+
+
+
+const launch_room_ws = ({ws_ref, set_conns_counter, set_ongoing_transfer_count, set_users_ws_conn_info,setMyTempId, fileLsRefForTransfer, set_transfer_log_data, transfer_log_data_ref}:launch_props) => {
 
     const USER_ACCESS_TOKEN = cookie_finder('USER_ACCESS_TOKEN')
     const ROOM_ID = cookie_finder('ROOM_ID')
@@ -94,20 +71,14 @@ const launch = ({ws_ref, set_conns_counter, set_ongoing_transfer_count, set_user
         connected = false
     }, 150);
 
-    // const ws = new WebSocket(base_ws + '/xd')
     if(!ws) return 
     ws.onopen = () => {
         console.log('connection established with', url)
-        // set_ongoing_transfer_count((prev)=>{return prev+1})
-        // const username = cookie_finder('username')
-        // if(username){
-        //     ws.send(JSON.stringify({'username':username}))
-        // }
+
     }
 
     ws.onclose = () => {
         console.log('Parent ws conn lost or is irresponding!')
-        // document.write('Parent ws conn lost or is irresponding!')
         reload_on_conn_fail &&  setTimeout(() => {
             window.location.reload()
         }, 3000);
@@ -131,12 +102,10 @@ const launch = ({ws_ref, set_conns_counter, set_ongoing_transfer_count, set_user
                 set_conns_counter(data.connected_users)
             }
             if(data.users_ws_conn_info){
-                // console.log(data.users_ws_conn_info, '????')
                 set_users_ws_conn_info(data.users_ws_conn_info as user_ws_conn_info[])
             }
             if(data.temp_user_id){
                 setMyTempId(data.temp_user_id)
-                // temp_muser_id
             }
 
 
@@ -154,7 +123,6 @@ const launch = ({ws_ref, set_conns_counter, set_ongoing_transfer_count, set_user
                 data.upload_type == 'multiple' && UploadMultipleFiles({fileLsRefForTransfer: fileLsRefForTransfer, target_ids: data.targets, TRANSFER_ACCESS_TOKEN: TRANSFER_ACCESS_TOKEN, set_transfer_log_data, transfer_log_data_ref, set_ongoing_transfer_count})
                 }
 
-                // if(ws_ref.current) ws_ref.current.removeEventListener("message", handle_transfer)
 
 
         }
@@ -167,4 +135,4 @@ const launch = ({ws_ref, set_conns_counter, set_ongoing_transfer_count, set_user
 }
 
 
-export default launch
+export default launch_room_ws

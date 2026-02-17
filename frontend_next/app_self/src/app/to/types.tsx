@@ -2,6 +2,9 @@
 export type transfer_uploading = boolean
 export type transfer_downloading = boolean
 
+
+
+
 export type payload_props = {
     filename: string,
     real_filesize: number
@@ -52,6 +55,19 @@ export type IncomingTransferData = {
     target: string
 }
 
+export type transfer_log_data_utils = {
+    set_transfer_log_data: React.Dispatch<React.SetStateAction<transfer_log_data_props[]|null>>
+    transfer_log_data_ref: React.MutableRefObject<transfer_log_data_props[]|null>
+}
 
 
-// export {transfer_downloading, transfer_uploading}
+export type update_perc_value_props = transfer_log_data_utils & {
+    transaction_id: string
+    perc?: string | number
+    extra_msg?: string
+    confirm_hide: boolean,
+    button_text?:  'Cancel' | 'Clear'
+    filename?: string
+
+}
+

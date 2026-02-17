@@ -3,8 +3,8 @@
 import { useEffect, useState, useRef } from 'react'
 import { base_fetch, base_ws, default_app_url, wait_for_client_response_while_uploading } from '../../app_conf'
 import { useParams } from 'next/navigation'
-import RoomProtectedPrompt from '../comps/room_protected_prompt'
-import launch, { formatFileSize } from '../comps/app_modules/mk_conn'
+import RoomProtectedPrompt from '../comps/room_protected/room_protected_prompt'
+import launch_room_ws, { formatFileSize } from './room_utils/mk_conn'
 import { cookie_finder,remove_cookie,set_cookie } from '../../modules/cookie_manager'
 import { IncomingTransferData, payload_props, transfer_downloading, transfer_log_data_props, user_ws_conn_info } from '../../types'
 import { v4 as uuidv4 } from 'uuid'
@@ -27,7 +27,6 @@ export type ModifiedFile = {
 }
 
 
-let opened_single_file_transfer: boolean = false
 
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(()=>{window.location.reload();resolve}, ms))
@@ -37,11 +36,9 @@ const does_room_exists = async (room_id: string): Promise<RoomDataProps | null> 
     try{
         const response = await fetch(base_fetch + '/does_room_exists' + `/?received_room_id=${room_id}`, { credentials: 'include' })
         const data = await response.json() as RoomDataProps
-        // console.log(data, 'xd?', room_id)
         if (!data || data.room_found === false) {
-            window.open('/lobby', '_self')
+            window.open(default_app_url, '_self')
         }
-        // if(data.USER_ACCESS_TOKEN){set_cookie('USER_ACCESS_TOKEN', data.USER_ACCESS_TOKEN)}
         set_cookie('ROOM_ID', room_id)
         return data
     }catch(err){
@@ -85,7 +82,7 @@ const View = () => {
             setRoomData(data)
             if(data.ALLOW_USER) {
                 console.log('launching',data)
-                launch({ws_ref, set_conns_counter, set_users_ws_conn_info,set_ongoing_transfer_count, setMyTempId,fileLsRefForTransfer, set_transfer_log_data, transfer_log_data_ref})
+                launch_room_ws({ws_ref, set_conns_counter, set_users_ws_conn_info,set_ongoing_transfer_count, setMyTempId,fileLsRefForTransfer, set_transfer_log_data, transfer_log_data_ref})
             }
         }
         loadRoom()
@@ -157,7 +154,6 @@ const View = () => {
             const picker = window.showOpenFilePicker as (opts?: { multiple?: boolean }) => Promise<any[]>
             const newHandles = await picker({ multiple: true })
 
-            // const files = await Promise.all(newHandles.map(h => h.getFile()))
 
             const files = (
                 await Promise.all(newHandles.map(h => h.getFile()))
@@ -166,16 +162,7 @@ const View = () => {
                 'file':file as File
             }))
 
-            
-            // const files = (
-            //     await Promise.all(newHandles.map(h => h.getFile()))
-            // ).map(file => ({
-            //     ...file,
-            //     file_id: crypto.randomUUID()
-            // }))
 
-
-            // const filesWithId = files.map((item)=>{return [...item, item.index=2]})
             setFileLs(prev => [...prev, ...files])
             fileLsRefForTransfer.current = [...fileLsRefForTransfer.current ? fileLsRefForTransfer.current : [], ...files]
 
@@ -183,10 +170,7 @@ const View = () => {
             console.log(fileLs, 'dada?')
             
 
-            // console.log(filesWithId,'xx?')
-            // just_files_names.current = [...just_files_names.current, ...files.map((item)=>{console.log(item.name); return item.name})]
             just_files_names.current = [...just_files_names.current, ...files.map((item)=>{console.log(item.file.name); return {'filename': item.file.name,'filesize': formatFileSize(item.file.size), 'real_filesize': item.file.size, 'file_id': item.file_id}})]
-            // just_files_names.current =files.map((item)=>{console.log(item.name); return {'filename': item.name, 'filesize': item.size}})
 
             if(ws_ref.current){
                 console.log('updating payload')
@@ -195,9 +179,6 @@ const View = () => {
                 }))
             }
 
-            // console.log('Wybrane pliki:', just_files_names.current)
-
-            // setHandles(prev => [...prev, ...newHandles])
         } catch (e) {
             console.log('User anulował wybór pliku',e)
         }
@@ -212,15 +193,8 @@ const View = () => {
 
         just_files_names.current = just_files_names.current.filter((item)=>item.file_id != file_id)
         setFileLs(prev => prev.filter((item)=>item.file_id != file_id))
-        // console.log(just_files_names.current)
-
-        // just_files_names.current = just_files_names.current.filter((item)=>{return item.file_id!=file_id})
-
-        // console.log(just_files_names.current)
 
         // // just_files_names.current = just_files_names.current.filter(
-        // //     (item, index) => index !== file_no && item.filename != filename && item.real_filesize != filesize
-        // // )
 
         if(ws_ref.current){
             console.log('updating payload')
@@ -229,16 +203,6 @@ const View = () => {
             }))
         }
 
-        // setFileLs((prev)=>{
-        //     if(!prev) return []
-        //     prev.
-        // })
-
-        // console.log(just_files_names.current)
-
-    
-        // setFileLs(just_files_names.current)
-        // console.log(just_files_names.current)
     }
 
 
@@ -250,12 +214,10 @@ const View = () => {
         }
       
         try {
-          // w Chromium -> createWritable i truncate + close usunie zawartość pliku
           const writable = await handles[0].createWritable()
-          await writable.truncate(0) // nadpisanie pustą zawartością
+          await writable.truncate(0) 
           await writable.close()
       
-          // usuń też z listy w RAM
           setFileLs(prev => prev?.slice(1) || [])
           setHandles(prev => prev?.slice(1) || [])
       

@@ -16,7 +16,7 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: [
     'http://localhost:9000',
     'http://localhost:9000',
-    'https://woodruf-webkit.webhop.me',
+    'https://berkehut.ddns.net',
     'https://zst-href.rest'
   ],
 

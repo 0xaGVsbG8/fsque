@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect, useRef } from "react";
-import { base_ws, default_app_url } from "../app_conf";
+import { base_ws,base_fetch, default_app_url } from "../app_conf";
 import {redirect } from 'next/navigation'
 import { app_title } from "../app_conf";
 import CreateRoomPanel, { CreateRoomPayload } from "./createroompanel/CreateRoomPanel";
@@ -91,6 +91,12 @@ export default function LobbyPage() {
   };
 
   const gather_rooms_ls = async() => {
+
+    await fetch(`${base_fetch}/do_i_have_id/`, {
+      method: "GET",
+      credentials: "include",
+  });
+
     const ws_url = base_ws + '/rooms-lobby/'
 
     if(ws_opened.current) return

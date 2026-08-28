@@ -4,7 +4,7 @@ import subprocess
 from app.db_conn import is_db_working
 from dotenv import load_dotenv
 
-PROD = True
+PROD = False
 
 
 def read_env():
@@ -27,7 +27,7 @@ print(MAIN_PATH)
 
 def deploy():
     is_db_working()
-    cmd = f"cd {os.path.dirname(MAIN_PATH)} && uvicorn {os.path.basename(MAIN_PATH).replace('.py', '')}:app --workers {WORKERS} --host {HOST} --port {PORT} {'--reload' if PROD else None}"  
+    cmd = f"cd {os.path.dirname(MAIN_PATH)} && uvicorn {os.path.basename(MAIN_PATH).replace('.py', '')}:app --workers {WORKERS} --host {HOST} --port {PORT} {'--reload' if not PROD else ''}"  
     subprocess.run(cmd, shell=True)
 
 deploy()

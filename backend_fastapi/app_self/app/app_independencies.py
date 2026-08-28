@@ -48,8 +48,9 @@ origins = [
     # '*' #dev only,
     'http://localhost:9000',
     'http://localhost:3000',
-    'https://woodruf.webkit.webhop.me',
-    'https://zst-href.rest'
+    'https://berkehut.ddns.net',
+    'https://zst-href.rest',
+    'https://gowno-shop'
 ]
 
 

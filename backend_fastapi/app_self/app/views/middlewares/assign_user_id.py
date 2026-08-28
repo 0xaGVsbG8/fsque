@@ -15,6 +15,7 @@ class ASSIGN_CLIENT_ID(BaseHTTPMiddleware):
             token = str(uuid.uuid4())
         else:
             token = request.cookies.get('user_id')
+            print('user id assinged')
         request.state.user_id = token
 
         

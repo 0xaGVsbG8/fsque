@@ -50,7 +50,6 @@ origins = [
     'http://localhost:3000',
     'https://berkehut.ddns.net',
     'https://zst-href.rest',
-    'https://gowno-shop'
 ]
 
 

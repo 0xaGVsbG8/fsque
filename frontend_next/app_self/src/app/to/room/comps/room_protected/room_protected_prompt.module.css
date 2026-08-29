@@ -1,0 +1,66 @@
+.card {
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: #f8fafc;
+  border-radius: 12px;
+  padding: 20px;
+  width: min(420px, 92vw);
+}
+
+.wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.subtitle {
+  color: #cbd5f5;
+  font-size: 14px;
+  margin-bottom: 14px;
+}
+
+.input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #475569;
+  border-radius: 8px;
+  background: #111827;
+  color: #f8fafc;
+  font-size: 14px;
+}
+
+.errorText {
+  color: #f87171;
+  font-size: 13px;
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.button {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: none;
+  background: #076bbd;
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button:disabled {
+  background: #4b5563;
+  cursor: not-allowed;
+}

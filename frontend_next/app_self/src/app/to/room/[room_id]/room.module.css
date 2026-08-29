@@ -1,0 +1,296 @@
+.page {
+    min-height: 100vh;
+    background: #0f0f0f;
+    color: #e0e0e0;
+    font-family: system-ui, -apple-system, sans-serif;
+    padding: 24px 32px;
+}
+
+/* ── Top bar ── */
+.topBar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+}
+
+.connBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: #999;
+}
+
+.connDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #66bb6a;
+    display: inline-block;
+}
+
+/* ── Action buttons row ── */
+.actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+}
+
+.btnPrimary {
+    padding: 8px 18px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    background: #2563eb;
+    color: #fff;
+    transition: background 0.15s;
+}
+
+.btnPrimary:hover {
+    background: #1d4ed8;
+}
+
+.btnHome {
+    padding: 8px 18px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: 1px solid #444;
+    border-radius: 6px;
+    cursor: pointer;
+    background: transparent;
+    color: #ccc;
+    transition: all 0.15s;
+}
+
+.btnHome:hover {
+    background: #444;
+    color: #fff;
+}
+
+.btnDanger {
+    padding: 8px 18px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: 1px solid #444;
+    border-radius: 6px;
+    cursor: pointer;
+    background: transparent;
+    color: #ccc;
+    transition: all 0.15s;
+}
+
+.btnDanger:hover {
+    background: #dc2626;
+    border-color: #dc2626;
+    color: #fff;
+}
+
+/* ── User cards ── */
+.userList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.userCard {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.userCardMe {
+    border-color: #2563eb44;
+}
+
+.userHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 18px;
+    cursor: default;
+}
+
+.username {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #f0f0f0;
+}
+
+.meTag {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #2563eb;
+    background: #2563eb1a;
+    padding: 2px 8px;
+    border-radius: 99px;
+    margin-left: 8px;
+}
+
+.toggleBtn {
+    background: none;
+    border: none;
+    color: #666;
+    font-size: 0.85rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    transition: color 0.15s;
+}
+
+.toggleBtn:hover {
+    color: #aaa;
+}
+
+/* ── File table ── */
+.fileTable {
+    padding: 0 0 14px;
+}
+
+.fileHeader {
+    display: grid;
+    grid-template-columns: 1fr 100px 130px;
+    padding: 8px 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid #2a2a2a;
+}
+
+.fileRow {
+    display: grid;
+    grid-template-columns: 1fr 100px 130px;
+    align-items: center;
+    padding: 10px 12px;
+    border-bottom: 1px solid #1f1f1f;
+    transition: background 0.1s;
+}
+
+.fileRow:last-child {
+    border-bottom: none;
+}
+
+.fileRow:hover {
+    background: #ffffff06;
+}
+
+.fileName {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #ddd;
+    font-size: 0.9rem;
+}
+
+.fileSize {
+    color: #888;
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.fileActions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    justify-content: center;
+}
+
+.btnDown {
+    padding: 5px 14px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border: 1px solid #333;
+    border-radius: 5px;
+    background: transparent;
+    color: #ccc;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.btnDown:hover {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #fff;
+}
+
+.btnDrop {
+    padding: 5px 14px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border: 1px solid #333;
+    border-radius: 5px;
+    background: transparent;
+    color: #888;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.btnDrop:hover {
+    background: #dc2626;
+    border-color: #dc2626;
+    color: #fff;
+}
+
+.checkbox {
+    accent-color: #2563eb;
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+}
+
+.noFiles {
+    padding: 12px 18px;
+    color: #555;
+    font-style: italic;
+    font-size: 0.85rem;
+}
+
+.downloadSelectedRow {
+    display: flex;
+    justify-content: flex-end;
+    padding: 8px 12px;
+}
+
+.btnDownloadSelected {
+    padding: 6px 16px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border: 1px solid #2563eb;
+    border-radius: 5px;
+    background: #2563eb22;
+    color: #6ea8fe;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.btnDownloadSelected:hover {
+    background: #2563eb;
+    color: #fff;
+}
+
+.colSize {
+    text-align: center;
+}
+
+.colAction {
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+@media (max-width: 600px) {
+    .page {
+        padding: 16px;
+    }
+
+    .fileHeader,
+    .fileRow {
+        grid-template-columns: 1fr 80px 90px;
+    }
+}

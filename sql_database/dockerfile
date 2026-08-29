@@ -1,0 +1,8 @@
+FROM mariadb:lts
+
+ENV MYSQL_ALLOW_EMPTY_PASSWORD=yes
+ENV MYSQL_DATABASE=fsque
+
+COPY fsque_template.sql /docker-entrypoint-initdb.d/
+
+EXPOSE 3306

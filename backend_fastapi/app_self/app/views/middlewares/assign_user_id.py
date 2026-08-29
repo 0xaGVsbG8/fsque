@@ -9,12 +9,16 @@ import uuid
 class ASSIGN_CLIENT_ID(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         
+        
         if not request.cookies.get('user_id'):
+            print('no user id yet')
             token = str(uuid.uuid4())
         else:
             token = request.cookies.get('user_id')
+            print('user id assinged')
         request.state.user_id = token
 
+        
 
         response: Response = await call_next(request)
 
@@ -24,7 +28,7 @@ class ASSIGN_CLIENT_ID(BaseHTTPMiddleware):
                 value = token,
                 path='/',
                 max_age=60*60*24*365*10,
-                httponly = True
+                httponly = True,
             )
 
         return response

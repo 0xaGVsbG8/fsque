@@ -1,0 +1,73 @@
+
+export type transfer_uploading = boolean
+export type transfer_downloading = boolean
+
+
+
+
+export type payload_props = {
+    filename: string,
+    real_filesize: number
+    filesize: string
+    file_id: string
+}
+
+export type user_ws_conn_info = {
+    username: string,
+    user_id: string,
+    payload: payload_props[]
+    temp_identity: string
+}
+
+
+export type RoomEntry = {
+    name: string;
+    protected: boolean;
+    visible: boolean;
+    password?: string;
+    room_id: string,
+    owner:string,
+    redirectImmediately?: boolean;
+    occupancy: number
+
+};    
+
+
+export type transfer_log_data_props = {
+    user_id: string
+    file_id: string
+    username: string
+    filename: string
+    transfer_type: 'upload' | 'download'
+    perc: number | string,
+    editable: boolean
+    transaction_id: string
+    cancel_behaviour?: () => void
+    extra_msg?: string
+    button_text?: 'Cancel' | 'Clear'
+}
+
+
+export type IncomingTransferData = {
+    incoming_transfer: string
+    role: string
+    TRANSFER_ACCESS_TOKEN: string
+    target: string
+}
+
+export type transfer_log_data_utils = {
+    set_transfer_log_data: React.Dispatch<React.SetStateAction<transfer_log_data_props[]|null>>
+    transfer_log_data_ref: React.MutableRefObject<transfer_log_data_props[]|null>
+}
+
+
+export type update_perc_value_props = transfer_log_data_utils & {
+    transaction_id: string
+    perc?: string | number
+    extra_msg?: string
+    confirm_hide: boolean,
+    button_text?:  'Cancel' | 'Clear'
+    filename?: string
+
+}
+

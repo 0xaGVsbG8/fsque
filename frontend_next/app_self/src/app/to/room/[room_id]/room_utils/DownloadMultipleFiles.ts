@@ -102,8 +102,14 @@ const launch_client_download = async ({
                 const filename = file_info?.filename ?? 'unknown'
                 const tracker = `(${file_index}/${total_files})`
 
-                const fileHandle = await dirHandle.getFileHandle(filename, { create: true })
-                current_writable = await fileHandle.createWritable()
+                try {
+                    const fileHandle = await dirHandle.getFileHandle(filename, { create: true })
+                    current_writable = await fileHandle.createWritable()
+                } catch (err) {
+                    console.error('could not open file for writing:', err)
+                    handleClose('(Could not write to folder)')
+                    return
+                }
 
                 console.log('approach!')
 
@@ -191,7 +197,13 @@ const DownloadMultipleFiles = async ({
 
     let dirHandle: FileSystemDirectoryHandle
     try {
-        dirHandle = await (window as any).showDirectoryPicker()
+        dirHandle = await (window as any).showDirectoryPicker({ mode: 'readwrite' })
+        // chunks arrive with no user gesture in play, so write access has to be settled up front
+        const permission = await (dirHandle as any).requestPermission({ mode: 'readwrite' })
+        if (permission !== 'granted') {
+            alert('Permission denied. Please click "Allow" when the browser asks to view and edit files in the selected folder.')
+            return
+        }
     } catch (err: any) {
         if (err?.name === 'AbortError') {
             console.log('User cancelled directory picker')

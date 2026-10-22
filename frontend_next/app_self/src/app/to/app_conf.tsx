@@ -11,14 +11,17 @@ const CHUNK_SIZE = 10 * 1024  * 1024 // 64KB chunks #5MBs
 
 
 const API_HOST = process.env.NEXT_PUBLIC_API_HOST as string
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
-const USE_SSL = ['yes', 'y'].includes(
-    (process.env.NEXT_PUBLIC_USE_SSL ?? '').toLowerCase()
-  );
 
-const base_fetch = (USE_SSL ? 'https://' : 'http://') + API_BASE_URL
+
+const BACKEND_PATH = '/fsque/backend'
+
+const base_fetch = BACKEND_PATH
 // const base_fetch = 'http://localhost:9010/backend'
-const base_ws =  (USE_SSL ? 'wss://' : 'ws://') + API_BASE_URL
+
+
+const base_ws = typeof window === 'undefined'
+    ? BACKEND_PATH
+    : (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host + BACKEND_PATH
 // const base_ws = 'ws://localhost:9010/backend'
 
 const wait_for_client_response_while_uploading: boolean = true

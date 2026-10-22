@@ -349,3 +349,12 @@ MariaDB stores room data in the `rooms_info` table:
 | `lastActivity` | BIGINT | Unix timestamp, updated on every interaction |
 
 Database files are persisted via bind mount at `./sql_database/data/`. The schema is auto-initialized from `fsque_template.sql` on first run.
+
+
+
+## Showcase
+
+### Lobby
+![FsQue Lobby](showcase/fsque-lobby.png)
+
+
